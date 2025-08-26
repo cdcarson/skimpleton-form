@@ -8,8 +8,8 @@ import type {
 
 // Path type utilities for form field access
 
-// Generate paths for Level 1 objects (containing primitives and arrays)
-type DotPathsDepth1<Shape> =
+// Generate paths for simple objects (containing only primitives and arrays)
+type DotPathsSimple<Shape> =
   Shape extends Record<string, unknown>
     ? {
         [K in keyof Shape]: K extends string
@@ -22,7 +22,7 @@ type DotPathsDepth1<Shape> =
       }[keyof Shape]
     : never;
 
-// Generate dot-notation paths for a schema shape (up to 3 levels)
+// Generate dot-notation paths for form objects (primitives, simple objects, nested objects, arrays)
 type DotPaths<Shape> =
   Shape extends Record<string, unknown>
     ? {
@@ -30,7 +30,7 @@ type DotPaths<Shape> =
           ? Shape[K] extends ZPrimitive
             ? K
             : Shape[K] extends ZSimpleObject
-              ? K | `${K}.${DotPathsDepth1<Shape[K]['shape']>}`
+              ? K | `${K}.${DotPathsSimple<Shape[K]['shape']>}`
               : Shape[K] extends ZNestedObject
                 ?
                     | K
@@ -41,7 +41,7 @@ type DotPaths<Shape> =
                             : Shape[K]['shape'][K2] extends ZSimpleObject
                               ?
                                   | `${K}.${K2}`
-                                  | `${K}.${K2}.${DotPathsDepth1<Shape[K]['shape'][K2]['shape']>}`
+                                  | `${K}.${K2}.${DotPathsSimple<Shape[K]['shape'][K2]['shape']>}`
                               : Shape[K]['shape'][K2] extends ZArrayOfPrimitives
                                 ? `${K}.${K2}` | `${K}.${K2}.${number}`
                                 : never
@@ -54,7 +54,7 @@ type DotPaths<Shape> =
       }[keyof Shape]
     : never;
 
-// Generate array-based paths for a schema shape (up to 3 levels)
+// Generate array-based paths for form objects (primitives, simple objects, nested objects, arrays)
 type ArrayPaths<Shape> =
   Shape extends Record<string, unknown>
     ? {
@@ -151,11 +151,11 @@ export const formPath = <Schema extends ZFormObject>(
     throw new Error(`Invalid path format: ${JSON.stringify(path)}`);
   }
 
-  // Type for Zod schema shape at different depths
+  // Type for Zod schema shapes at different nesting levels
   type ZShapeType =
-    | Record<string, unknown> // Top-level shape (depth 0)
-    | { shape: Record<string, unknown> } // Nested object
-    | { element: { shape?: Record<string, unknown> } | unknown }; // Array
+    | Record<string, unknown> // Form object shape (top level)
+    | { shape: Record<string, unknown> } // Simple or nested object
+    | { element: { shape?: Record<string, unknown> } | unknown }; // Array type
 
   // Validate path against schema
   const validatePath = (
@@ -180,7 +180,7 @@ export const formPath = <Schema extends ZFormObject>(
           `Invalid path: First segment must be a string, got ${typeof currentSegment}`
         );
       }
-      // At depth 0, currentShape is Record<string, unknown>
+      // At top level, currentShape is the form object's shape
       const topShape = currentShape as Record<string, unknown>;
       if (!(currentSegment in topShape)) {
         throw new Error(
