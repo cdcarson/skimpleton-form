@@ -38,6 +38,14 @@ export type ZNestedObject = ZodObject<
   Record<string, ZPrimitive | ZSimpleObject | ZArrayOfPrimitives>
 >;
 
+// Top-level form object
+export type ZFormObject = ZodObject<
+  Record<
+    string,
+    ZPrimitive | ZSimpleObject | ZNestedObject | ZArrayOfPrimitives
+  >
+>;
+
 // const nestedObject: ZNestedObject = z
 //   .object({
 //     name: z.string().refine((value) => value.length > 0, {

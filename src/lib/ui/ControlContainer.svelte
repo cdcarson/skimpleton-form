@@ -1,10 +1,7 @@
-<script lang="ts" generics="S extends ZParentObject">
+<script lang="ts" generics="S extends ZFormObject">
   // import type { Snippet } from 'svelte';
-  import {
-    formPath,
-    type FormPaths,
-    type ZParentObject
-  } from '$lib/form/paths.js';
+  import { formPath, type FormPaths } from '$lib/form/paths.js';
+  import type { ZFormObject } from '$lib/form/types.js';
 
   type Props = {
     schema: S;

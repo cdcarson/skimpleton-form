@@ -1,44 +1,10 @@
 import type {
-  ZodBigInt,
-  ZodBoolean,
-  ZodDate,
-  ZodEnum,
-  ZodNumber,
-  ZodObject,
-  ZodFile,
-  ZodString,
-  ZodStringFormat,
-  ZodArray
-} from 'zod';
-
-type ZPrimitive =
-  | ZodString
-  | ZodStringFormat
-  | ZodNumber
-  | ZodBoolean
-  | ZodDate
-  | ZodBigInt
-  | ZodEnum
-  | ZodFile;
-
-// Level 0: Just primitives
-type ZDepth0 = ZPrimitive;
-
-// Arrays can only contain primitives (no arrays of objects allowed)
-type ZArrayOfPrimitives = ZodArray<ZDepth0>;
-
-// Level 1: Objects containing only primitives or arrays of primitives
-type ZObjectDepth1 = ZodObject<Record<string, ZDepth0 | ZArrayOfPrimitives>>;
-
-// Level 2: Objects that can contain Level 1 objects
-type ZObjectDepth2 = ZodObject<
-  Record<string, ZDepth0 | ZObjectDepth1 | ZArrayOfPrimitives>
->;
-
-// Level 3: Top-level object that can contain Level 2 types
-export type ZParentObject = ZodObject<
-  Record<string, ZDepth0 | ZObjectDepth1 | ZObjectDepth2 | ZArrayOfPrimitives>
->;
+  ZPrimitive,
+  ZArrayOfPrimitives,
+  ZSimpleObject,
+  ZNestedObject,
+  ZFormObject
+} from './types.js';
 
 // Path type utilities for form field access
 
@@ -47,7 +13,7 @@ type DotPathsDepth1<Shape> =
   Shape extends Record<string, unknown>
     ? {
         [K in keyof Shape]: K extends string
-          ? Shape[K] extends ZDepth0
+          ? Shape[K] extends ZPrimitive
             ? `${K}`
             : Shape[K] extends ZArrayOfPrimitives
               ? `${K}` | `${K}.${number}`
@@ -61,18 +27,18 @@ type DotPaths<Shape> =
   Shape extends Record<string, unknown>
     ? {
         [K in keyof Shape]: K extends string
-          ? Shape[K] extends ZDepth0
+          ? Shape[K] extends ZPrimitive
             ? K
-            : Shape[K] extends ZObjectDepth1
+            : Shape[K] extends ZSimpleObject
               ? K | `${K}.${DotPathsDepth1<Shape[K]['shape']>}`
-              : Shape[K] extends ZObjectDepth2
+              : Shape[K] extends ZNestedObject
                 ?
                     | K
                     | {
                         [K2 in keyof Shape[K]['shape']]: K2 extends string
-                          ? Shape[K]['shape'][K2] extends ZDepth0
+                          ? Shape[K]['shape'][K2] extends ZPrimitive
                             ? `${K}.${K2}`
-                            : Shape[K]['shape'][K2] extends ZObjectDepth1
+                            : Shape[K]['shape'][K2] extends ZSimpleObject
                               ?
                                   | `${K}.${K2}`
                                   | `${K}.${K2}.${DotPathsDepth1<Shape[K]['shape'][K2]['shape']>}`
@@ -93,28 +59,28 @@ type ArrayPaths<Shape> =
   Shape extends Record<string, unknown>
     ? {
         [K in keyof Shape]: K extends string
-          ? Shape[K] extends ZDepth0
+          ? Shape[K] extends ZPrimitive
             ? [K]
-            : Shape[K] extends ZObjectDepth1
+            : Shape[K] extends ZSimpleObject
               ?
                   | [K]
                   | {
                       [K2 in keyof Shape[K]['shape']]: K2 extends string
-                        ? Shape[K]['shape'][K2] extends ZDepth0
+                        ? Shape[K]['shape'][K2] extends ZPrimitive
                           ? [K, K2]
                           : Shape[K]['shape'][K2] extends ZArrayOfPrimitives
                             ? [K, K2] | [K, K2, number]
                             : never
                         : never;
                     }[keyof Shape[K]['shape']]
-              : Shape[K] extends ZObjectDepth2
+              : Shape[K] extends ZNestedObject
                 ?
                     | [K]
                     | {
                         [K2 in keyof Shape[K]['shape']]: K2 extends string
-                          ? Shape[K]['shape'][K2] extends ZDepth0
+                          ? Shape[K]['shape'][K2] extends ZPrimitive
                             ? [K, K2]
-                            : Shape[K]['shape'][K2] extends ZObjectDepth1
+                            : Shape[K]['shape'][K2] extends ZSimpleObject
                               ?
                                   | [K, K2]
                                   | [
@@ -136,7 +102,7 @@ type ArrayPaths<Shape> =
     : never;
 
 // Main path type that combines both formats
-export type FormPaths<Schema extends ZParentObject> =
+export type FormPaths<Schema extends ZFormObject> =
   | DotPaths<Schema['shape']>
   | ArrayPaths<Schema['shape']>;
 
@@ -158,7 +124,7 @@ export type FormPaths<Schema extends ZParentObject> =
  * // { formName: 'tags.0', path: ['tags', 0] }
  * ```
  */
-export const formPath = <Schema extends ZParentObject>(
+export const formPath = <Schema extends ZFormObject>(
   schema: Schema,
   path: FormPaths<Schema>
 ): {

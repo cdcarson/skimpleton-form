@@ -1,6 +1,7 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { formPath, type ZParentObject } from './paths.js';
+import { formPath } from './paths.js';
+import type { ZFormObject } from './types.js';
 
 describe('formPath function', () => {
   const testSchema = z.object({
@@ -13,7 +14,7 @@ describe('formPath function', () => {
     }),
     tags: z.array(z.string()),
     scores: z.array(z.number())
-  }) satisfies ZParentObject;
+  }) satisfies ZFormObject;
 
   describe('with dot-notation input', () => {
     it('should handle single-level paths', () => {
@@ -146,7 +147,7 @@ describe('formPath function', () => {
           name: z.string()
         })
         .refine((obj) => obj.name !== '')
-    }) satisfies ZParentObject;
+    }) satisfies ZFormObject;
 
     it('should handle paths to refined primitive fields', () => {
       const result = formPath(refinedSchema, 'password');
@@ -233,7 +234,7 @@ describe('formPath function', () => {
         }),
         tags: z.array(z.string())
       })
-    }) satisfies ZParentObject;
+    }) satisfies ZFormObject;
 
     describe('dot notation paths', () => {
       it('should handle 3-level object paths', () => {
@@ -355,7 +356,7 @@ describe('formPath function', () => {
 
         // Refined types
         username: z.string().refine((val) => val.length >= 3)
-      }) satisfies ZParentObject;
+      }) satisfies ZFormObject;
 
       // Test primitive
       const result1 = formPath(complexSchema, 'id');
