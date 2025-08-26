@@ -12,7 +12,24 @@ import {
 } from 'zod';
 
 /**
- * Form schema types
+ * Form schema types with depth restrictions
+ *
+ * These types define a 3-level deep schema structure for forms:
+ * - Level 0 (Top/ZFormObject): Can contain primitives, simple objects, nested objects, or arrays
+ * - Level 1 (ZSimpleObject): Can only contain primitives or arrays of primitives
+ * - Level 2 (ZNestedObject): Can contain primitives, simple objects, or arrays
+ *
+ * This structure ensures:
+ * 1. Maximum nesting depth of 3 levels (e.g., "user.profile.name")
+ * 2. Arrays can only contain primitives, not objects
+ * 3. Objects at the deepest level can only contain primitives or arrays
+ *
+ * Valid paths examples:
+ * - "name" (primitive at top level)
+ * - "profile.firstName" (primitive in simple object)
+ * - "settings.notifications.email" (primitive in nested object)
+ * - "tags.0" (array element access)
+ * - "profile.hobbies.2" (nested array element)
  */
 
 export type ZPrimitive =
@@ -45,25 +62,3 @@ export type ZFormObject = ZodObject<
     ZPrimitive | ZSimpleObject | ZNestedObject | ZArrayOfPrimitives
   >
 >;
-
-// const nestedObject: ZNestedObject = z
-//   .object({
-//     name: z.string().refine((value) => value.length > 0, {
-//       message: 'Name must be at least 1 character long'
-//     }),
-//     address: z.object({
-//       street: z.string(),
-//       city: z.string(),
-//       state: z.string(),
-//       zip: z.string(),
-//       tags: z.array(z.string())
-//     })
-//   })
-//   .superRefine((o, ctx) => {
-//     if (o.name.length > 0) {
-//       ctx.addIssue({
-//         code: 'custom',
-//         message: 'Name must be at least 1 character long'
-//       });
-//     }
-//   });
