@@ -10,6 +10,7 @@ import {
   type ZodStringFormat,
   type ZodArray
 } from 'zod';
+import type { ZDotPaths } from './paths.types.js';
 
 /**
  * Form schema types with depth restrictions
@@ -62,3 +63,11 @@ export type ZFormObject = ZodObject<
     ZPrimitive | ZSimpleObject | ZNestedObject | ZArrayOfPrimitives
   >
 >;
+
+/**
+ * Form state types
+ */
+
+export type FormErrors<Z extends ZFormObject> = {
+  [Path in ZDotPaths<Z>]?: string;
+};

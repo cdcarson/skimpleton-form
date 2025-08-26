@@ -1,110 +1,5 @@
-import type {
-  ZPrimitive,
-  ZArrayOfPrimitives,
-  ZSimpleObject,
-  ZNestedObject,
-  ZFormObject
-} from './types.js';
-
-// Path type utilities for form field access
-
-// Generate paths for simple objects (containing only primitives and arrays)
-type DotPathsSimple<Shape> =
-  Shape extends Record<string, unknown>
-    ? {
-        [K in keyof Shape]: K extends string
-          ? Shape[K] extends ZPrimitive
-            ? `${K}`
-            : Shape[K] extends ZArrayOfPrimitives
-              ? `${K}` | `${K}.${number}`
-              : never
-          : never;
-      }[keyof Shape]
-    : never;
-
-// Generate dot-notation paths for form objects (primitives, simple objects, nested objects, arrays)
-type DotPaths<Shape> =
-  Shape extends Record<string, unknown>
-    ? {
-        [K in keyof Shape]: K extends string
-          ? Shape[K] extends ZPrimitive
-            ? K
-            : Shape[K] extends ZSimpleObject
-              ? K | `${K}.${DotPathsSimple<Shape[K]['shape']>}`
-              : Shape[K] extends ZNestedObject
-                ?
-                    | K
-                    | {
-                        [K2 in keyof Shape[K]['shape']]: K2 extends string
-                          ? Shape[K]['shape'][K2] extends ZPrimitive
-                            ? `${K}.${K2}`
-                            : Shape[K]['shape'][K2] extends ZSimpleObject
-                              ?
-                                  | `${K}.${K2}`
-                                  | `${K}.${K2}.${DotPathsSimple<Shape[K]['shape'][K2]['shape']>}`
-                              : Shape[K]['shape'][K2] extends ZArrayOfPrimitives
-                                ? `${K}.${K2}` | `${K}.${K2}.${number}`
-                                : never
-                          : never;
-                      }[keyof Shape[K]['shape']]
-                : Shape[K] extends ZArrayOfPrimitives
-                  ? K | `${K}.${number}`
-                  : never
-          : never;
-      }[keyof Shape]
-    : never;
-
-// Generate array-based paths for form objects (primitives, simple objects, nested objects, arrays)
-type ArrayPaths<Shape> =
-  Shape extends Record<string, unknown>
-    ? {
-        [K in keyof Shape]: K extends string
-          ? Shape[K] extends ZPrimitive
-            ? [K]
-            : Shape[K] extends ZSimpleObject
-              ?
-                  | [K]
-                  | {
-                      [K2 in keyof Shape[K]['shape']]: K2 extends string
-                        ? Shape[K]['shape'][K2] extends ZPrimitive
-                          ? [K, K2]
-                          : Shape[K]['shape'][K2] extends ZArrayOfPrimitives
-                            ? [K, K2] | [K, K2, number]
-                            : never
-                        : never;
-                    }[keyof Shape[K]['shape']]
-              : Shape[K] extends ZNestedObject
-                ?
-                    | [K]
-                    | {
-                        [K2 in keyof Shape[K]['shape']]: K2 extends string
-                          ? Shape[K]['shape'][K2] extends ZPrimitive
-                            ? [K, K2]
-                            : Shape[K]['shape'][K2] extends ZSimpleObject
-                              ?
-                                  | [K, K2]
-                                  | [
-                                      K,
-                                      K2,
-                                      keyof Shape[K]['shape'][K2]['shape'] &
-                                        string
-                                    ]
-                              : Shape[K]['shape'][K2] extends ZArrayOfPrimitives
-                                ? [K, K2] | [K, K2, number]
-                                : never
-                          : never;
-                      }[keyof Shape[K]['shape']]
-                : Shape[K] extends ZArrayOfPrimitives
-                  ? [K] | [K, number]
-                  : never
-          : never;
-      }[keyof Shape]
-    : never;
-
-// Main path type that combines both formats
-export type FormPaths<Schema extends ZFormObject> =
-  | DotPaths<Schema['shape']>
-  | ArrayPaths<Schema['shape']>;
+import type { ZFormObject } from './types.js';
+import type { ZFormPaths } from './paths.types.js';
 
 /**
  * Processes a path (either array or dot-notated string) and returns both formats.
@@ -126,7 +21,7 @@ export type FormPaths<Schema extends ZFormObject> =
  */
 export const formPath = <Schema extends ZFormObject>(
   schema: Schema,
-  path: FormPaths<Schema>
+  path: ZFormPaths<Schema>
 ): {
   formName: string;
   path: (string | number)[];
