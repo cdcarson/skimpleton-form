@@ -12,7 +12,7 @@ import {
 } from 'zod';
 
 /**
- * Form schema shape types
+ * Form schema types
  */
 
 export type ZPrimitive =
