@@ -1,7 +1,584 @@
 import { describe, it, expect } from 'vitest';
 import { z } from 'zod';
-import { formPath } from './paths.js';
+import {
+  createFormStateFromFormData,
+  getFormAllTouched,
+  getFormDataArrayLength,
+  readFormData,
+  validate,
+  formPath
+} from './utils.js';
 import type { ZFormObject } from './types.js';
+
+describe('createFormStateFromFormData', () => {
+  it('creates form state from valid form data', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+      active: z.boolean()
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('name', 'John');
+    formData.append('age', '25');
+    formData.append('active', 'on');
+
+    const state = createFormStateFromFormData(schema, formData);
+
+    expect(state.data).toEqual({
+      name: 'John',
+      age: 25,
+      active: true
+    });
+    expect(state.errors).toEqual({});
+    expect(state.valid).toBe(true);
+    expect(state.touched).toEqual({});
+  });
+
+  it('creates form state with validation errors', () => {
+    const schema = z.object({
+      name: z.string().min(1, 'Name is required'),
+      email: z.string().email('Invalid email')
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('name', '');
+    formData.append('email', 'not-an-email');
+
+    const state = createFormStateFromFormData(schema, formData);
+
+    expect(state.data).toEqual({
+      name: '',
+      email: 'not-an-email'
+    });
+    expect(state.errors.name).toBe('Name is required');
+    expect(state.errors.email).toBe('Invalid email');
+    expect(state.valid).toBe(false);
+  });
+
+  it('handles nested objects', () => {
+    const schema = z.object({
+      profile: z.object({
+        firstName: z.string(),
+        lastName: z.string()
+      })
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('profile.firstName', 'Jane');
+    formData.append('profile.lastName', 'Doe');
+
+    const state = createFormStateFromFormData(schema, formData);
+
+    expect(state.data).toEqual({
+      profile: {
+        firstName: 'Jane',
+        lastName: 'Doe'
+      }
+    });
+    expect(state.errors).toEqual({});
+    expect(state.valid).toBe(true);
+  });
+});
+
+describe('getFormAllTouched', () => {
+  it('marks all primitive fields as touched', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+      active: z.boolean()
+    }) satisfies ZFormObject;
+
+    const data = {
+      name: 'John',
+      age: 25,
+      active: true
+    };
+
+    const touched = getFormAllTouched(schema, data);
+
+    expect(touched.name).toBe(true);
+    expect(touched.age).toBe(true);
+    expect(touched.active).toBe(true);
+  });
+
+  it('marks nested object fields as touched', () => {
+    const schema = z.object({
+      profile: z.object({
+        firstName: z.string(),
+        lastName: z.string(),
+        age: z.number()
+      })
+    }) satisfies ZFormObject;
+
+    const data = {
+      profile: {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        age: 30
+      }
+    };
+
+    const touched = getFormAllTouched(schema, data);
+
+    expect(touched['profile.firstName']).toBe(true);
+    expect(touched['profile.lastName']).toBe(true);
+    expect(touched['profile.age']).toBe(true);
+  });
+
+  it('marks array elements as touched based on actual data', () => {
+    const schema = z.object({
+      tags: z.array(z.string()),
+      scores: z.array(z.number())
+    }) satisfies ZFormObject;
+
+    const data = {
+      tags: ['javascript', 'typescript', 'react'],
+      scores: [95, 87]
+    };
+
+    const touched = getFormAllTouched(schema, data);
+
+    expect(touched['tags.0']).toBe(true);
+    expect(touched['tags.1']).toBe(true);
+    expect(touched['tags.2']).toBe(true);
+    expect(touched['scores.0']).toBe(true);
+    expect(touched['scores.1']).toBe(true);
+    // Should not mark non-existent indices
+    expect(touched['tags.3']).toBeUndefined();
+    expect(touched['scores.2']).toBeUndefined();
+  });
+
+  it('marks fields as touched even when data is partial', () => {
+    const schema = z.object({
+      name: z.string(),
+      email: z.string(),
+      age: z.number()
+    }) satisfies ZFormObject;
+
+    const data = {
+      name: 'John'
+      // email and age are missing
+    };
+
+    const touched = getFormAllTouched(schema, data);
+
+    expect(touched.name).toBe(true);
+    expect(touched.email).toBe(true);
+    expect(touched.age).toBe(true);
+  });
+
+  it('handles deeply nested structures', () => {
+    const schema = z.object({
+      settings: z.object({
+        notifications: z.object({
+          email: z.boolean(),
+          sms: z.boolean()
+        })
+      })
+    }) satisfies ZFormObject;
+
+    const data = {
+      settings: {
+        notifications: {
+          email: true,
+          sms: false
+        }
+      }
+    };
+
+    const touched = getFormAllTouched(schema, data);
+
+    expect(touched['settings.notifications.email']).toBe(true);
+    expect(touched['settings.notifications.sms']).toBe(true);
+  });
+
+  it('handles nested arrays', () => {
+    const schema = z.object({
+      profile: z.object({
+        hobbies: z.array(z.string())
+      })
+    }) satisfies ZFormObject;
+
+    const data = {
+      profile: {
+        hobbies: ['reading', 'gaming', 'coding']
+      }
+    };
+
+    const touched = getFormAllTouched(schema, data);
+
+    expect(touched['profile.hobbies.0']).toBe(true);
+    expect(touched['profile.hobbies.1']).toBe(true);
+    expect(touched['profile.hobbies.2']).toBe(true);
+  });
+});
+
+describe('getFormDataArrayLength', () => {
+  it('returns 0 for non-existent arrays', () => {
+    const formData = new FormData();
+    expect(getFormDataArrayLength(formData, 'tags')).toBe(0);
+  });
+
+  it('counts array elements correctly', () => {
+    const formData = new FormData();
+    formData.append('tags.0', 'first');
+    formData.append('tags.1', 'second');
+    formData.append('tags.2', 'third');
+
+    expect(getFormDataArrayLength(formData, 'tags')).toBe(3);
+  });
+
+  it('handles sparse arrays correctly', () => {
+    const formData = new FormData();
+    formData.append('tags.0', 'first');
+    formData.append('tags.5', 'sixth');
+    formData.append('tags.10', 'eleventh');
+
+    expect(getFormDataArrayLength(formData, 'tags')).toBe(11); // Max index + 1
+  });
+
+  it('ignores non-array fields', () => {
+    const formData = new FormData();
+    formData.append('tags', 'not-an-array');
+    formData.append('tags.name', 'also-not-an-array');
+    formData.append('tagsList', 'different-field');
+
+    expect(getFormDataArrayLength(formData, 'tags')).toBe(0);
+  });
+});
+
+describe('readFormData', () => {
+  it('reads primitive fields', () => {
+    const schema = z.object({
+      name: z.string(),
+      age: z.number(),
+      active: z.boolean()
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('name', 'John');
+    formData.append('age', '25');
+    formData.append('active', 'on');
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      name: 'John',
+      age: 25,
+      active: true
+    });
+  });
+
+  it('reads nested objects', () => {
+    const schema = z.object({
+      profile: z.object({
+        firstName: z.string(),
+        lastName: z.string(),
+        age: z.number()
+      })
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('profile.firstName', 'Jane');
+    formData.append('profile.lastName', 'Doe');
+    formData.append('profile.age', '30');
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      profile: {
+        firstName: 'Jane',
+        lastName: 'Doe',
+        age: 30
+      }
+    });
+  });
+
+  it('reads deeply nested objects (3 levels)', () => {
+    const schema = z.object({
+      settings: z.object({
+        notifications: z.object({
+          email: z.boolean(),
+          sms: z.boolean()
+        })
+      })
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('settings.notifications.email', 'on');
+    formData.append('settings.notifications.sms', '');
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      settings: {
+        notifications: {
+          email: true,
+          sms: false
+        }
+      }
+    });
+  });
+
+  it('reads arrays', () => {
+    const schema = z.object({
+      tags: z.array(z.string()),
+      scores: z.array(z.number())
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('tags.0', 'javascript');
+    formData.append('tags.1', 'typescript');
+    formData.append('scores.0', '95');
+    formData.append('scores.1', '87');
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      tags: ['javascript', 'typescript'],
+      scores: [95, 87]
+    });
+  });
+
+  it('reads nested arrays', () => {
+    const schema = z.object({
+      profile: z.object({
+        hobbies: z.array(z.string())
+      })
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('profile.hobbies.0', 'reading');
+    formData.append('profile.hobbies.1', 'gaming');
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      profile: {
+        hobbies: ['reading', 'gaming']
+      }
+    });
+  });
+
+  it('handles missing fields', () => {
+    const schema = z.object({
+      required: z.string(),
+      optional: z.string()
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('required', 'present');
+    // 'optional' is not in FormData
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      required: 'present',
+      optional: undefined
+    });
+  });
+
+  it('handles empty strings', () => {
+    const schema = z.object({
+      name: z.string()
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('name', '');
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      name: ''
+    });
+  });
+
+  it('handles file inputs', () => {
+    const schema = z.object({
+      avatar: z.file()
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    const file = new File(['content'], 'avatar.jpg', { type: 'image/jpeg' });
+    formData.append('avatar', file);
+
+    const result = readFormData(schema, formData);
+    expect(result.avatar).toBeInstanceOf(File);
+    expect((result.avatar as File).name).toBe('avatar.jpg');
+  });
+
+  it('handles refined schemas', () => {
+    const schema = z.object({
+      email: z
+        .string()
+        .email()
+        .refine((val) => val.includes('@example.com')),
+      age: z.number().min(18)
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('email', 'user@example.com');
+    formData.append('age', '25');
+
+    const result = readFormData(schema, formData);
+    expect(result).toEqual({
+      email: 'user@example.com',
+      age: 25
+    });
+  });
+
+  it('handles date fields', () => {
+    const schema = z.object({
+      birthDate: z.date()
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('birthDate', '2000-01-01');
+
+    const result = readFormData(schema, formData);
+    expect(result.birthDate).toBeInstanceOf(Date);
+    // Check the date was parsed correctly
+    const date = result.birthDate as Date;
+    expect(date.toISOString().startsWith('2000-01-01')).toBe(true);
+  });
+
+  it('handles bigint fields', () => {
+    const schema = z.object({
+      largeNumber: z.bigint()
+    }) satisfies ZFormObject;
+
+    const formData = new FormData();
+    formData.append('largeNumber', '9007199254740993');
+
+    const result = readFormData(schema, formData);
+    expect(result.largeNumber).toBe(BigInt('9007199254740993'));
+  });
+});
+
+describe('validate', () => {
+  it('returns empty object for valid data', () => {
+    const schema = z.object({
+      name: z.string().min(1),
+      age: z.number().min(0)
+    }) satisfies ZFormObject;
+
+    const data = {
+      name: 'John',
+      age: 25
+    };
+
+    const errors = validate(schema, data);
+    expect(errors).toEqual({});
+  });
+
+  it('returns errors for invalid primitive fields', () => {
+    const schema = z.object({
+      name: z.string().min(1, 'Name is required'),
+      age: z.number().min(18, 'Must be 18 or older')
+    }) satisfies ZFormObject;
+
+    const data = {
+      name: '',
+      age: 16
+    };
+
+    const errors = validate(schema, data);
+    expect(errors.name).toBe('Name is required');
+    expect(errors.age).toBe('Must be 18 or older');
+  });
+
+  it('returns errors for nested objects', () => {
+    const schema = z.object({
+      profile: z.object({
+        email: z.string().email('Invalid email'),
+        phone: z.string().min(10, 'Phone must be at least 10 characters')
+      })
+    }) satisfies ZFormObject;
+
+    const data = {
+      profile: {
+        email: 'not-an-email',
+        phone: '123'
+      }
+    };
+
+    const errors = validate(schema, data);
+    expect(errors['profile.email']).toBe('Invalid email');
+    expect(errors['profile.phone']).toBe(
+      'Phone must be at least 10 characters'
+    );
+  });
+
+  it('returns errors for deeply nested objects', () => {
+    const schema = z.object({
+      settings: z.object({
+        notifications: z.object({
+          email: z.boolean(),
+          sms: z.boolean()
+        })
+      })
+    }) satisfies ZFormObject;
+
+    const data = {
+      settings: {
+        notifications: {
+          email: 'yes' as unknown as boolean, // Invalid boolean value
+          sms: true
+        }
+      }
+    };
+
+    const errors = validate(schema, data);
+    expect(errors['settings.notifications.email']).toBeDefined();
+  });
+
+  it('returns errors for arrays', () => {
+    const schema = z.object({
+      tags: z.array(z.string().min(1, 'Tag cannot be empty'))
+    }) satisfies ZFormObject;
+
+    const data = {
+      tags: ['valid', '', 'another']
+    };
+
+    const errors = validate(schema, data);
+    expect(errors['tags.1']).toBe('Tag cannot be empty');
+  });
+
+  it('handles mixed validation with primitives, objects, and arrays', () => {
+    const schema = z.object({
+      name: z.string().min(1, 'Name required'),
+      profile: z.object({
+        age: z.number().min(0, 'Age must be positive')
+      }),
+      hobbies: z.array(z.string().min(1, 'Hobby cannot be empty'))
+    }) satisfies ZFormObject;
+
+    const data = {
+      name: '',
+      profile: {
+        age: -5
+      },
+      hobbies: ['reading', '']
+    };
+
+    const errors = validate(schema, data);
+    expect(errors.name).toBe('Name required');
+    expect(errors['profile.age']).toBe('Age must be positive');
+    expect(errors['hobbies.1']).toBe('Hobby cannot be empty');
+  });
+
+  it('only returns the first error for each field', () => {
+    const schema = z.object({
+      email: z
+        .string()
+        .min(1, 'Email is required')
+        .email('Must be a valid email')
+    }) satisfies ZFormObject;
+
+    const data = {
+      email: '' // This will trigger both validations
+    };
+
+    const errors = validate(schema, data);
+    expect(errors.email).toBe('Email is required');
+    expect(Object.keys(errors).length).toBe(1);
+  });
+});
 
 describe('formPath function', () => {
   const testSchema = z.object({

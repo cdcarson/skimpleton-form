@@ -1,8 +1,7 @@
 <script lang="ts" generics="S extends ZFormObject">
   // import type { Snippet } from 'svelte';
-  import { formPath } from '$lib/form/paths.js';
-  import type { ZFormObject } from '$lib/form/types.js';
-  import type { ZFormPaths } from '$lib/form/paths.types.js';
+  import { formPath } from '$lib/form/utils.js';
+  import type { ZFormObject, ZFormPaths } from '$lib/form/types.js';
 
   type Props = {
     schema: S;
