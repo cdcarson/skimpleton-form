@@ -71,3 +71,7 @@ export type ZFormObject = ZodObject<
 export type FormErrors<Z extends ZFormObject> = {
   [Path in ZDotPaths<Z>]?: string;
 };
+
+export type FormTouched<Z extends ZFormObject> = {
+  [Path in ZDotPaths<Z>]?: boolean;
+};
