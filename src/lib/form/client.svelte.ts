@@ -136,7 +136,6 @@ const createState = <
     }
   };
 
-  // TypeScript will correctly infer the return type based on IsRedirectForm
   return state as IsRedirectForm extends true
     ? RedirectingFormClientState<S>
     : NonRedirectingFormClientState<S, Success>;
