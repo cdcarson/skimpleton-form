@@ -808,18 +808,21 @@ describe('Edge cases and complex scenarios', () => {
   });
 
   it('should handle partial data with defaults', () => {
+    // Note: schemas with .default() are not part of ZFormObject type
+    // but we can still test the runtime behavior
     const schemaWithDefaults = z.object({
       name: z.string().default('Anonymous'),
       count: z.number().default(0),
       active: z.boolean().default(false)
-    }) satisfies ZFormObject;
+    });
 
     const formData = new FormData();
     formData.append('name', 'John');
     // count and active are not provided
 
     const handler = createNonRedirectingRemoteFunctionHandler(
-      schemaWithDefaults,
+      // eslint-disable-next-line @typescript-eslint/no-explicit-any
+      schemaWithDefaults as any,
       formData
     );
 

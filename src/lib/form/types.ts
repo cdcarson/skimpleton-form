@@ -169,6 +169,37 @@ export type NonRedirectingActionHandler<
   ) => NonRedirectingFormState<S, Success>;
 };
 
+export type BaseFormClientState<S extends ZFormObject> = BaseFormState<S> & {
+  submitting: boolean;
+  computedErrors: FormErrors<S>;
+  externalErrors: FormErrors<S>;
+  shownErrors: FormErrors<S>;
+  baseId: string;
+  touch: (path: ZFormPaths<S>) => void;
+  untouch: (path: ZFormPaths<S>) => void;
+  touchAll: () => void;
+  untouchAll: () => void;
+  controlName: (path: ZFormPaths<S>) => string;
+  controlId: (path: ZFormPaths<S>) => string;
+  controlDescriptionId: (path: ZFormPaths<S>) => string;
+};
+
+export type RedirectingFormClientState<S extends ZFormObject> =
+  BaseFormClientState<S> & {
+    success?: {
+      isRedirect: true;
+      location: string;
+      message: string;
+    };
+  };
+
+export type NonRedirectingFormClientState<
+  S extends ZFormObject,
+  Success extends Record<string, unknown> | undefined = undefined
+> = BaseFormClientState<S> & {
+  success?: NonRedirectingFormSuccess<Success>;
+};
+
 /**
  * Path type utilities for form field access
  */
