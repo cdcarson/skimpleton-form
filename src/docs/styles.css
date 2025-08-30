@@ -1,0 +1,60 @@
+/* Documentation-specific styles */
+
+@layer components {
+  /* Code block wrapper for line numbers */
+  .code-block-wrapper {
+    @apply flex relative overflow-hidden rounded-md border border-gray-200;
+  }
+
+  .code-block-wrapper.shiki-dark {
+    @apply border-gray-700;
+  }
+
+  /* Line numbers column */
+  .line-numbers {
+    @apply flex flex-col py-4 pl-2 pr-2 bg-gray-50 border-r border-gray-200;
+    @apply select-none font-mono text-xs leading-6 min-w-[2rem] text-right;
+    @apply items-end justify-start;
+  }
+
+  .shiki-dark .line-numbers {
+    @apply bg-gray-900 border-gray-700;
+  }
+
+  /* Individual line number */
+  .line-number {
+    @apply text-gray-500 block h-6 leading-6 pr-1;
+  }
+
+  .shiki-dark .line-number {
+    @apply text-gray-400;
+  }
+
+  /* Ensure pre element fills remaining space and aligns with line numbers */
+  .code-block-wrapper pre {
+    @apply m-0 flex-1 overflow-x-auto !p-4 !leading-6;
+  }
+
+  /* Ensure code inside pre has same line height */
+  .code-block-wrapper pre code {
+    @apply !leading-6 block;
+  }
+
+  /* Code block without line numbers */
+  .code-block {
+    @apply border border-gray-200 rounded-md overflow-hidden;
+  }
+
+  .code-block.shiki-dark {
+    @apply border-gray-700;
+  }
+
+  .code-block pre {
+    @apply m-0 !p-4;
+  }
+
+  /* Inline code styling */
+  .inline-code {
+    @apply bg-gray-100 px-1.5 py-0.5 rounded text-sm font-mono;
+  }
+}
