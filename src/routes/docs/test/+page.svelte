@@ -1,5 +1,10 @@
 <script lang="ts">
-  let { data } = $props();
+  import { processMarkdownSync } from '$docs/utils-sync.js';
+  import pageContent from './page.md?raw';
+
+  const content = processMarkdownSync(pageContent, {
+    showLineNumbers: true
+  });
 </script>
 
 <svelte:head>
@@ -12,6 +17,6 @@
   </header>
   <div class="prose">
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->
-    {@html data.content}
+    {@html content}
   </div>
 </main>

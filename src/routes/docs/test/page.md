@@ -2,7 +2,7 @@ Lorem ipsum dolor sit amet, consectetur adipiscing elit. Sed do eiusmod tempor i
 
 ```ts
 const a = 1;
-const b = "hello";
+const b = 'hello';
 const c = [1, 2, 3];
 const d = { a: 1, b: 2, c: 3 };
 const e = () => {

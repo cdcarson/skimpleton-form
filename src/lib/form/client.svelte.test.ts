@@ -51,6 +51,8 @@ describe('createRedirectingFormClientState', () => {
       errors: {
         name: 'External error'
       },
+      touched: {},
+      valid: false,
       success: undefined
     };
 
@@ -254,7 +256,11 @@ describe('createNonRedirectingFormClientState', () => {
         password: 'password123'
       },
       errors: {},
+      touched: {},
+      valid: true,
       success: {
+        isRedirect: false,
+        message: 'Success',
         userId: '123',
         token: 'abc-def-ghi'
       }
@@ -267,6 +273,8 @@ describe('createNonRedirectingFormClientState', () => {
 
     expect(state.data).toEqual(initialState.data);
     expect(state.success).toEqual({
+      isRedirect: false,
+      message: 'Success',
       userId: '123',
       token: 'abc-def-ghi'
     });
@@ -283,11 +291,15 @@ describe('createNonRedirectingFormClientState', () => {
     expect(state.success).toBeUndefined();
 
     state.success = {
+      isRedirect: false,
+      message: 'Success',
       userId: '456',
       token: 'xyz-123-456'
     };
 
     expect(state.success).toEqual({
+      isRedirect: false,
+      message: 'Success',
       userId: '456',
       token: 'xyz-123-456'
     });
@@ -379,20 +391,20 @@ describe('createNonRedirectingFormClientState', () => {
 describe('client state edge cases', () => {
   const schema = z.object({
     field1: z.string(),
-    field2: z.number().optional()
+    field2: z.number()
   }) satisfies ZFormObject;
 
   const defaultData = {
     field1: '',
-    field2: undefined
+    field2: 0
   };
 
-  it('handles optional fields correctly', () => {
+  it('handles nullable fields correctly', () => {
     const state = createRedirectingFormClientState(schema, defaultData, null);
 
     state.data = {
       field1: 'value',
-      field2: undefined
+      field2: 0
     };
 
     expect(state.valid).toBe(true);
