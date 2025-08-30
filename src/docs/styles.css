@@ -8,7 +8,7 @@
 
   /* Line numbers column */
   .line-numbers {
-    @apply flex flex-col border-r border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900 py-4 pr-2 pl-2;
+    @apply flex flex-col border-r border-gray-200 bg-gray-50 py-4 pr-2 pl-2 dark:border-gray-700 dark:bg-gray-900;
     @apply min-w-[2rem] text-right font-mono text-xs leading-6 select-none;
     @apply items-end justify-start;
   }
@@ -39,6 +39,6 @@
 
   /* Inline code styling */
   .inline-code {
-    @apply rounded bg-gray-100 dark:bg-gray-800 px-1.5 py-0.5 font-mono text-sm;
+    @apply rounded bg-gray-100 px-1.5 py-0.5 font-mono text-sm dark:bg-gray-800;
   }
 }

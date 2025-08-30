@@ -1,52 +1,74 @@
 import { marked } from 'marked';
-import { createHighlighter, bundledLanguages, type Highlighter } from 'shiki';
+import hljs from 'highlight.js/lib/core';
 
-let highlighterPromise: Promise<Highlighter> | null = null;
+// Import only essential languages for a SvelteKit library docs
+import javascript from 'highlight.js/lib/languages/javascript';
+import typescript from 'highlight.js/lib/languages/typescript';
+import xml from 'highlight.js/lib/languages/xml'; // HTML/SVG/XML
+import css from 'highlight.js/lib/languages/css';
+import json from 'highlight.js/lib/languages/json';
+import bash from 'highlight.js/lib/languages/bash';
+import markdown from 'highlight.js/lib/languages/markdown';
+
+// Register languages
+hljs.registerLanguage('javascript', javascript);
+hljs.registerLanguage('js', javascript);
+hljs.registerLanguage('typescript', typescript);
+hljs.registerLanguage('ts', typescript);
+hljs.registerLanguage('xml', xml);
+hljs.registerLanguage('html', xml);
+hljs.registerLanguage('svelte', xml); // Svelte uses XML highlighting
+hljs.registerLanguage('css', css);
+hljs.registerLanguage('json', json);
+hljs.registerLanguage('bash', bash);
+hljs.registerLanguage('sh', bash);
+hljs.registerLanguage('shell', bash);
+hljs.registerLanguage('markdown', markdown);
+hljs.registerLanguage('md', markdown);
 
 /**
- * Get or create a cached highlighter instance
- */
-const getHighlighter = async (): Promise<Highlighter> => {
-  if (!highlighterPromise) {
-    highlighterPromise = createHighlighter({
-      themes: ['github-light', 'github-dark'],
-      langs: Object.keys(bundledLanguages)
-    });
-  }
-  return highlighterPromise;
-};
-
-/**
- * Highlight code using Shiki
+ * Highlight code synchronously using highlight.js
  * @param code - The code to highlight
  * @param lang - The language to use for highlighting
  * @param options - Options for highlighting
  */
-export const highlightCode = async (
+export const highlightCodeSync = (
   code: string,
   lang: string = 'text',
   options: {
     theme?: 'github-light' | 'github-dark';
     showLineNumbers?: boolean;
   } = {}
-): Promise<string> => {
-  const highlighter = await getHighlighter();
+): string => {
   const { theme = 'github-light', showLineNumbers = false } = options;
 
   // Normalize language name
   const normalizedLang = lang
     .toLowerCase()
-    .replace(/^sh$/, 'bash')
-    .replace(/^ts$/, 'typescript')
-    .replace(/^js$/, 'javascript');
+    .replace(/^jsx$/, 'javascript')
+    .replace(/^tsx$/, 'typescript')
+    .replace(/^text$/, 'plaintext')
+    .replace(/^plain$/, 'plaintext');
 
-  const html = highlighter.codeToHtml(code, {
-    lang: normalizedLang,
-    theme
-  });
+  let highlightedCode: string;
 
-  // Determine theme class
-  const themeClass = theme === 'github-dark' ? 'shiki-dark' : 'shiki-light';
+  try {
+    // Try to highlight with the specified language
+    const result = hljs.highlight(code, { language: normalizedLang });
+    highlightedCode = result.value;
+  } catch {
+    // Fallback to auto-detection or plain text
+    try {
+      const result = hljs.highlightAuto(code);
+      highlightedCode = result.value;
+    } catch {
+      // If all else fails, escape the HTML
+      highlightedCode = escapeHtml(code);
+    }
+  }
+
+  // Wrap in pre and code tags with hljs class
+  const themeClass = theme === 'github-dark' ? 'hljs-dark' : 'hljs-light';
 
   // Add line numbers if requested
   if (showLineNumbers) {
@@ -55,43 +77,36 @@ export const highlightCode = async (
       .map((_, i) => `<span class="line-number">${i + 1}</span>`)
       .join('');
 
-    // Wrap the code with line numbers and not-prose
-    const withLineNumbers = html
-      .replace(
-        /<pre/,
-        `<div class="code-block-wrapper ${themeClass}"><div class="line-numbers">` +
-          lineNumbersHtml +
-          '</div><pre'
-      )
-      .replace(/<\/pre>/, '</pre></div>');
+    // Wrap the code with line numbers
+    const wrappedCode = `<div class="code-block-wrapper ${themeClass}">
+      <div class="line-numbers">${lineNumbersHtml}</div>
+      <pre class="hljs" data-code="${encodeURIComponent(code)}" data-language="${normalizedLang}"><code>${highlightedCode}</code></pre>
+    </div>`;
 
     // Wrap in not-prose to prevent Tailwind Typography styles
-    return `<div class="not-prose">${withLineNumbers}</div>`;
+    return `<div class="not-prose">${wrappedCode}</div>`;
   }
 
   // Add copy button support via data attribute and wrap in not-prose
-  const modifiedHtml = html.replace(
-    /<pre/,
-    `<pre data-code="${encodeURIComponent(code)}" data-language="${normalizedLang}"`
-  );
+  const wrappedCode = `<pre class="hljs ${themeClass}" data-code="${encodeURIComponent(code)}" data-language="${normalizedLang}"><code>${highlightedCode}</code></pre>`;
 
   // Wrap in not-prose and code-block to prevent Tailwind Typography styles and add border
-  return `<div class="not-prose"><div class="code-block ${themeClass}">${modifiedHtml}</div></div>`;
+  return `<div class="not-prose"><div class="code-block">${wrappedCode}</div></div>`;
 };
 
 /**
- * Process markdown with syntax highlighting for code blocks
+ * Process markdown synchronously with syntax highlighting for code blocks
  * @param markdown - The markdown content to process
  * @param options - Options for processing
  */
-export const processMarkdown = async (
+export const processMarkdownSync = (
   markdown: string,
   options: {
     theme?: 'github-light' | 'github-dark';
     showLineNumbers?: boolean;
     gfm?: boolean;
   } = {}
-): Promise<string> => {
+): string => {
   const {
     theme = 'github-light',
     showLineNumbers = false,
@@ -107,28 +122,9 @@ export const processMarkdown = async (
   // Create a custom renderer for code blocks
   const renderer = new marked.Renderer();
 
-  // Store async highlighted code blocks
-  const codeBlocks: Promise<{ index: number; html: string }>[] = [];
-  let blockIndex = 0;
-  const placeholders: string[] = [];
-
   // Override code block rendering
   renderer.code = ({ text, lang }): string => {
-    const currentIndex = blockIndex++;
-    const placeholder = `<!--CODE_BLOCK_${currentIndex}-->`;
-    placeholders.push(placeholder);
-
-    // Process the code block asynchronously
-    codeBlocks.push(
-      highlightCode(text, lang || 'text', { theme, showLineNumbers }).then(
-        (html) => ({
-          index: currentIndex,
-          html
-        })
-      )
-    );
-
-    return placeholder;
+    return highlightCodeSync(text, lang || 'text', { theme, showLineNumbers });
   };
 
   // Override inline code rendering (no syntax highlighting)
@@ -136,18 +132,11 @@ export const processMarkdown = async (
     return `<code class="inline-code">${escapeHtml(text)}</code>`;
   };
 
-  // Process the markdown with placeholders
-  let html = await marked(markdown, { renderer });
+  // Process the markdown synchronously
+  const result = marked.parse(markdown, { renderer });
 
-  // Wait for all code blocks to be highlighted
-  const highlightedBlocks = await Promise.all(codeBlocks);
-
-  // Replace placeholders with highlighted code
-  highlightedBlocks.forEach(({ index, html: codeHtml }) => {
-    html = html.replace(`<!--CODE_BLOCK_${index}-->`, codeHtml);
-  });
-
-  return html;
+  // marked.parse returns string | Promise<string>, but with sync renderer it's always string
+  return result as string;
 };
 
 /**

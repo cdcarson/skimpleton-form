@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { processMarkdownSync } from '$docs/utils-sync.js';
+  import { processMarkdownSync } from '$docs/utils.js';
   import pageContent from './page.md?raw';
 
   const content = processMarkdownSync(pageContent, {
