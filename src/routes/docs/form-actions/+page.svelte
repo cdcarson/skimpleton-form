@@ -9,13 +9,14 @@
 </script>
 
 <svelte:head>
-  <title>Test Docs</title>
+  <title>Form Actions - skimpleton-form</title>
 </svelte:head>
 
 <main class="container mx-auto my-4 px-4">
   <PageHeader
-    title="Test Docs"
-    breadcrumbs={[{ label: 'Docs', href: '/docs' }, { label: 'Test' }]}
+    title="Form Actions"
+    description="Handle forms with SvelteKit form actions for progressive enhancement"
+    breadcrumbs={[{ label: 'Docs', href: '/docs' }, { label: 'Form Actions' }]}
   />
   <div class="prose">
     <!-- eslint-disable-next-line svelte/no-at-html-tags -->

@@ -1,9 +1,10 @@
 <script lang="ts">
+    import AppMessage from '$lib/message/AppMessage.svelte';
   import '../app.css';
   import { themeService } from '../docs/theme/theme-service.svelte.js';
   import ThemeDropdown from '../docs/theme/ThemeDropdown.svelte';
 
-  let { children } = $props();
+  let { children, data } = $props();
 
   // Get the appropriate highlight.js theme URL based on resolved theme
   const hljsThemeUrl = $derived(
@@ -23,7 +24,7 @@
 >
   <!-- Theme dropdown in top right -->
   <nav
-    class="fixed top-0 right-0 left-0 z-50 flex h-14 items-center justify-between px-4"
+    class="fixed top-0 right-0 left-0 z-50 flex h-14 items-center justify-between bg-white/75 px-4 dark:bg-gray-900/75"
   >
     <a href="/" class="btn btn-ghost">
       <span class="icon-[bi--house-fill]"></span>
@@ -35,3 +36,5 @@
     {@render children()}
   </div>
 </div>
+
+<AppMessage viewportPosition="top-right" flashMessage={data.flashMessage ?? undefined} />

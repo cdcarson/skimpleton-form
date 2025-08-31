@@ -8,7 +8,10 @@ import z, {
   type ZodFile,
   type ZodString,
   type ZodStringFormat,
-  type ZodArray
+  type ZodArray,
+  type ZodDefault,
+  type ZodOptional,
+  type ZodNullable
 } from 'zod';
 import type { ActionFailure } from '@sveltejs/kit';
 
@@ -33,7 +36,8 @@ import type { ActionFailure } from '@sveltejs/kit';
  * - "profile.hobbies.2" (nested array element)
  */
 
-export type ZPrimitive =
+// Base primitive types without modifiers
+type ZPrimitiveBase =
   | ZodString
   | ZodStringFormat
   | ZodNumber
@@ -42,6 +46,13 @@ export type ZPrimitive =
   | ZodBigInt
   | ZodEnum
   | ZodFile;
+
+// Primitive types including modifiers
+export type ZPrimitive =
+  | ZPrimitiveBase
+  | ZodDefault<ZPrimitiveBase>
+  | ZodOptional<ZPrimitiveBase>
+  | ZodNullable<ZPrimitiveBase>;
 
 // Arrays can only contain primitives (no arrays of objects allowed)
 export type ZArrayOfPrimitives = ZodArray<ZPrimitive>;

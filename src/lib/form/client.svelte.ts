@@ -136,9 +136,9 @@ const createState = <
     }
   };
 
-  return state as IsRedirectForm extends true
+  return state as unknown as IsRedirectForm extends true
     ? RedirectingFormClientState<S>
-    : NonRedirectingFormClientState<S, Success>;
+    :  NonRedirectingFormClientState<S, Success>;
 };
 
 export const createRedirectingFormClientState = <S extends ZFormObject>(

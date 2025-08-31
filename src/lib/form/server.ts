@@ -51,15 +51,17 @@ export const createRedirectingRemoteFunctionHandler = <S extends ZFormObject>(
     message: string;
     location: string;
   }): RedirectingFormState<S> => {
+    const isFetch = isFetchRequest(event.request);
+    console.log('isFetch', isFetch);
     // For non-fetch requests, set flash message and throw redirect
-    if (!isFetchRequest(event.request)) {
-      setFlashMessage(event, {
-        type: 'success',
-        message: successData.message
-      });
+    // if (!isFetch) {
+    //   setFlashMessage(event, {
+    //     type: 'success',
+    //     message: successData.message
+    //   });
 
-      throw redirect(StatusCodes.SEE_OTHER, successData.location);
-    }
+    //   throw redirect(StatusCodes.SEE_OTHER, successData.location);
+    // }
 
     // For fetch requests, return success state with redirect info
     return {
