@@ -74,7 +74,7 @@ const deleteSessionCookie = (event: RequestEvent) => {
 };
 
 export const setAuthRedirect = (event: RequestEvent, location?: string) => {
-  let redirect = location || event.url.pathname;
+  const redirect = location || event.url.pathname;
   event.cookies.set(
     AUTH_REDIRECT_COOKIE_NAME,
     redirect,

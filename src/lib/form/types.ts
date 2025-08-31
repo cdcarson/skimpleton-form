@@ -182,10 +182,9 @@ export type NonRedirectingActionHandler<
 
 export type BaseFormClientState<S extends ZFormObject> = BaseFormState<S> & {
   submitting: boolean;
-  computedErrors: FormErrors<S>;
-  externalErrors: FormErrors<S>;
   shownErrors: FormErrors<S>;
   baseId: string;
+  setErrors: (errors: FormErrors<S>) => void;
   touch: (path: ZFormPaths<S>) => void;
   untouch: (path: ZFormPaths<S>) => void;
   touchAll: () => void;

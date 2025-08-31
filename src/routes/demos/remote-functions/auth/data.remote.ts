@@ -30,7 +30,7 @@ export const signUp = form(async (formData) => {
       email: `An account with the email ${email} already exists.`
     });
   }
-  const {userProfile, redirect} = await createRegisteredUser(event, {
+  const { userProfile, redirect } = await createRegisteredUser(event, {
     name,
     email,
     password,
@@ -72,7 +72,11 @@ export const signIn = form(async (formData) => {
     });
   }
 
-  const {redirect, userProfile} = await login(event, account.userId, remember);
+  const { redirect, userProfile } = await login(
+    event,
+    account.userId,
+    remember
+  );
   return handler.redirect({
     message: `Welcome back ${userProfile?.name}! You're signed in!`,
     location: redirect
@@ -86,7 +90,7 @@ export const signOut = form(async (formData) => {
     formData,
     event
   );
-  setAuthRedirect(event,resolve('/demos/remote-functions'));
+  setAuthRedirect(event, resolve('/demos/remote-functions'));
   logout(event);
   return handler.redirect({
     message: 'You have been signed out.',

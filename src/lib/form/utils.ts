@@ -304,7 +304,10 @@ export const validate = <Schema extends ZFormObject>(
  * // { formName: 'tags.0', path: ['tags', 0] }
  * ```
  */
-export const formPath = <Schema extends ZFormObject, P extends ZFormPaths<Schema>>(
+export const formPath = <
+  Schema extends ZFormObject,
+  P extends ZFormPaths<Schema>
+>(
   schema: Schema,
   path: P
 ): {
@@ -415,5 +418,8 @@ export const formPath = <Schema extends ZFormObject, P extends ZFormPaths<Schema
 
   validatePath(schema.shape, pathArray, 0);
 
-  return { formName: formName as P extends string ? P : string, path: pathArray };
+  return {
+    formName: formName as P extends string ? P : string,
+    path: pathArray
+  };
 };

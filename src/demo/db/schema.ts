@@ -1,4 +1,4 @@
-import { relations, sql } from 'drizzle-orm';
+import { relations } from 'drizzle-orm';
 import {
   customType,
   bigserial,
@@ -15,7 +15,6 @@ const citext = customType<{ data: string }>({
     return 'citext';
   }
 });
-
 
 export const user = pgTable('user', {
   id: bigserial('id', { mode: 'bigint' }).primaryKey(),
@@ -55,16 +54,14 @@ export const userAccount = pgTable(
     emailVerified: boolean('email_verified'),
     password: varchar('password'),
     lastSignedInAt: timestamp('last_signed_in_at').notNull(),
-   
+
     createdAt: timestamp('created_at').defaultNow(),
     updatedAt: timestamp('updated_at')
       .defaultNow()
       .$onUpdate(() => new Date())
   },
   (table) => {
-    return [
-      uniqueIndex('idx_user_account_unique_email').on(table.email)
-    ];
+    return [uniqueIndex('idx_user_account_unique_email').on(table.email)];
   }
 );
 
@@ -72,21 +69,18 @@ export const userAccountRelations = relations(userAccount, ({ one }) => ({
   user: one(user, { fields: [userAccount.userId], references: [user.id] })
 }));
 
-export const userProfile = pgTable(
-  'user_profile',
-  {
-    userId: bigint('user_id', { mode: 'bigint' })
-      .primaryKey()
-      .references(() => user.id),
-    name: varchar('name', { length: 200 }).notNull(),
-    description: text('description'),
-    avatarUrl: varchar('avatar_url'),
-    createdAt: timestamp('created_at').defaultNow(),
-    updatedAt: timestamp('updated_at')
-      .defaultNow()
-      .$onUpdate(() => new Date())
-  }
-);
+export const userProfile = pgTable('user_profile', {
+  userId: bigint('user_id', { mode: 'bigint' })
+    .primaryKey()
+    .references(() => user.id),
+  name: varchar('name', { length: 200 }).notNull(),
+  description: text('description'),
+  avatarUrl: varchar('avatar_url'),
+  createdAt: timestamp('created_at').defaultNow(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .$onUpdate(() => new Date())
+});
 export const userProfileRelations = relations(userProfile, ({ one }) => ({
   user: one(user, { fields: [userProfile.userId], references: [user.id] })
 }));

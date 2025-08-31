@@ -102,16 +102,13 @@ describe('createRedirectingFormClientState', () => {
     expect(state.valid).toBe(true);
   });
 
-  it('handles external errors', () => {
+  it('handles external errors via setErrors', () => {
     const state = createRedirectingFormClientState(schema, defaultData, null);
 
-    state.externalErrors = {
-      email: 'Email already exists'
-    };
-
-    expect(state.externalErrors).toEqual({
+    state.setErrors({
       email: 'Email already exists'
     });
+
     expect(state.errors).toEqual({
       name: 'Name is required',
       email: 'Email already exists',
@@ -190,7 +187,7 @@ describe('createRedirectingFormClientState', () => {
     );
   });
 
-  it('distinguishes between computed and external errors', () => {
+  it('combines validation and external errors', () => {
     const state = createRedirectingFormClientState(schema, defaultData, null);
 
     state.data = {
@@ -199,20 +196,42 @@ describe('createRedirectingFormClientState', () => {
       age: 25
     };
 
-    state.externalErrors = {
+    state.setErrors({
       name: 'Name already taken'
-    };
+    });
 
-    expect(state.computedErrors).toEqual({
-      email: 'Invalid email'
-    });
-    expect(state.externalErrors).toEqual({
-      name: 'Name already taken'
-    });
     expect(state.errors).toEqual({
       name: 'Name already taken',
       email: 'Invalid email'
     });
+  });
+
+  it('clears external errors when field data changes', () => {
+    const state = createRedirectingFormClientState(schema, defaultData, null);
+
+    // Set initial data
+    state.data = {
+      name: 'John',
+      email: 'john@example.com',
+      age: 25
+    };
+
+    // Add external error
+    state.setErrors({
+      email: 'Email already exists'
+    });
+
+    expect(state.errors).toEqual({
+      email: 'Email already exists'
+    });
+
+    // Change the email field - should clear the external error
+    state.data = {
+      ...state.data,
+      email: 'newemail@example.com'
+    };
+
+    expect(state.errors).toEqual({});
   });
 });
 
@@ -411,36 +430,54 @@ describe('client state edge cases', () => {
     expect(state.errors).toEqual({});
   });
 
-  it('preserves external errors when data changes', () => {
+  it('clears external errors when field data changes', () => {
     const state = createRedirectingFormClientState(schema, defaultData, null);
 
-    state.externalErrors = {
+    state.setErrors({
       field1: 'Server error'
-    };
+    });
 
+    expect(state.errors).toEqual({
+      field1: 'Server error'
+    });
+
+    // Changing field1 should clear its external error
     state.data = {
       field1: 'new value',
       field2: 10
     };
 
-    expect(state.externalErrors).toEqual({
-      field1: 'Server error'
+    expect(state.errors).toEqual({});
+  });
+
+  it('preserves external errors for unchanged fields', () => {
+    const state = createRedirectingFormClientState(schema, defaultData, null);
+
+    state.setErrors({
+      field1: 'Server error',
+      field2: 'Another error'
     });
+
+    // Only change field1, field2 error should remain
+    state.data = {
+      field1: 'new value',
+      field2: 0 // unchanged
+    };
+
     expect(state.errors).toEqual({
-      field1: 'Server error'
+      field2: 'Another error'
     });
   });
 
-  it('clears external errors when set to empty object', () => {
+  it('clears all external errors when set to empty object', () => {
     const state = createRedirectingFormClientState(schema, defaultData, null);
 
-    state.externalErrors = {
+    state.setErrors({
       field1: 'Server error'
-    };
+    });
 
-    state.externalErrors = {};
+    state.setErrors({});
 
-    expect(state.externalErrors).toEqual({});
     expect(state.errors).toEqual({});
   });
 });

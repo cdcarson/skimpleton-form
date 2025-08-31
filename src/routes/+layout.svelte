@@ -1,5 +1,5 @@
 <script lang="ts">
-    import AppMessage from '$lib/message/AppMessage.svelte';
+  import AppMessage from '$lib/message/AppMessage.svelte';
   import '../app.css';
   import { themeService } from '../docs/theme/theme-service.svelte.js';
   import ThemeDropdown from '../docs/theme/ThemeDropdown.svelte';
@@ -37,4 +37,7 @@
   </div>
 </div>
 
-<AppMessage viewportPosition="top-right" flashMessage={data.flashMessage ?? undefined} />
+<AppMessage
+  viewportPosition="top-right"
+  flashMessage={data.flashMessage ?? undefined}
+/>

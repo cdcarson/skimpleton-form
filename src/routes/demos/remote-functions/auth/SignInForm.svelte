@@ -5,7 +5,6 @@
   import { AppMessageService } from '$lib/message/app-message.svelte.js';
   import { signIn } from './data.remote.js';
   import { signInSchema } from './schemas.js';
-    import { tick } from 'svelte';
   const msg = AppMessageService.get();
   let result = $derived(signIn.result);
   const form = createRedirectingFormClientState(
@@ -17,8 +16,6 @@
     },
     signIn.result || null
   );
- 
-  $inspect(result);
 </script>
 
 <form
@@ -40,9 +37,10 @@
         await goto(result.success.location);
         return;
       }
-      form.externalErrors = result.errors;
+      form.setErrors(result.errors);
       msg.error('Please correct the error(s).');
     } catch (error) {
+      console.error(error);
       msg.clear();
     }
   })}
@@ -73,7 +71,12 @@
       </div>
     {/snippet}
   </ControlContainer>
-  <ControlContainer class="space-y-2" schema={signInSchema} path="password" {form}>
+  <ControlContainer
+    class="space-y-2"
+    schema={signInSchema}
+    path="password"
+    {form}
+  >
     {#snippet children(id, name, error)}
       <label for={id} class="block">Password</label>
       <input
@@ -99,11 +102,18 @@
     {/snippet}
   </ControlContainer>
 
-  <ControlContainer class="space-y-2" schema={signInSchema} path="remember" {form}>
-    {#snippet children(id, name, error)}
+  <ControlContainer
+    class="space-y-2"
+    schema={signInSchema}
+    path="remember"
+    {form}
+  >
+    {#snippet children(id, name)}
       <label class="label">
         <input
           type="checkbox"
+          {name}
+          {id}
           bind:checked={form.data.remember}
           class="checkbox checkbox-primary"
         />

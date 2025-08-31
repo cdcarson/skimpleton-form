@@ -36,7 +36,7 @@
         await goto(signUp.result.success.location);
         return;
       }
-      form.externalErrors = signUp.result.errors;
+      form.setErrors(signUp.result.errors);
       msg.error('Please correct the error(s).');
     } catch (error) {
       console.error(error);
@@ -95,7 +95,12 @@
       </div>
     {/snippet}
   </ControlContainer>
-  <ControlContainer class="space-y-2" schema={signUpSchema} path="password" {form}>
+  <ControlContainer
+    class="space-y-2"
+    schema={signUpSchema}
+    path="password"
+    {form}
+  >
     {#snippet children(id, name, error)}
       <label for={id} class="block">Choose Password</label>
       <input
@@ -121,11 +126,18 @@
     {/snippet}
   </ControlContainer>
 
-  <ControlContainer class="space-y-2" schema={signUpSchema} path="remember" {form}>
-    {#snippet children(id, name, error)}
+  <ControlContainer
+    class="space-y-2"
+    schema={signUpSchema}
+    path="remember"
+    {form}
+  >
+    {#snippet children(id, name)}
       <label class="label">
         <input
           type="checkbox"
+          {name}
+          {id}
           bind:checked={form.data.remember}
           class="checkbox checkbox-primary"
         />
@@ -134,6 +146,8 @@
     {/snippet}
   </ControlContainer>
   <div class="flex justify-end">
-    <button type="submit" class="btn btn-primary" disabled={form.submitting}>Sign Up</button>
+    <button type="submit" class="btn btn-primary" disabled={form.submitting}
+      >Sign Up</button
+    >
   </div>
 </form>

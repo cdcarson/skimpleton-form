@@ -28,7 +28,7 @@ const createState = <
   let submitting = $state(false);
   let submitted = $state(initialState ? initialState.submitted : false);
   let data: z.infer<S> = $state(initialState ? initialState.data : defaultData);
-  let externalErrors: FormErrors<S> = $state(
+  let manualErrors: FormErrors<S> = $state(
     initialState ? initialState.errors : {}
   );
   let touched: FormTouched<S> = $state({});
@@ -36,14 +36,47 @@ const createState = <
   // Success state - handle both types
   let success = $state(initialState ? initialState.success : undefined);
 
-  const computedErrors: FormErrors<S> = $derived.by(() => {
-    return validate(schema, data);
-  });
+  // Track field values when manual errors are set
+  let errorFieldValues: Record<string, unknown> = $state({});
+
+  // If we have initial errors, track the field values
+  if (initialState && initialState.errors) {
+    for (const key in initialState.errors) {
+      const pathParts = (key as string).split('.');
+      let currentValue: unknown = data;
+      for (const part of pathParts) {
+        currentValue = (currentValue as Record<string, unknown>)?.[part];
+      }
+      errorFieldValues[key] = currentValue;
+    }
+  }
 
   const errors: FormErrors<S> = $derived.by(() => {
+    const validationErrors = validate(schema, data);
+
+    // Filter manual errors based on whether their field values have changed
+    const filteredManualErrors: FormErrors<S> = {};
+    for (const key in manualErrors) {
+      const pathParts = (key as string).split('.');
+      let currentValue: unknown = data;
+
+      for (const part of pathParts) {
+        currentValue = (currentValue as Record<string, unknown>)?.[part];
+      }
+
+      // Only keep the error if the value hasn't changed since the error was set
+      if (
+        errorFieldValues[key] !== undefined &&
+        currentValue === errorFieldValues[key]
+      ) {
+        filteredManualErrors[key as keyof FormErrors<S>] =
+          manualErrors[key as keyof FormErrors<S>];
+      }
+    }
+
     return {
-      ...computedErrors,
-      ...externalErrors
+      ...validationErrors,
+      ...filteredManualErrors
     };
   });
 
@@ -93,14 +126,18 @@ const createState = <
     get shownErrors(): FormErrors<S> {
       return shownErrors;
     },
-    get computedErrors(): FormErrors<S> {
-      return computedErrors;
-    },
-    get externalErrors(): FormErrors<S> {
-      return externalErrors;
-    },
-    set externalErrors(value: FormErrors<S>) {
-      externalErrors = value;
+    setErrors: (errors: FormErrors<S>) => {
+      // Store current field values for the errors being set
+      errorFieldValues = {};
+      for (const key in errors) {
+        const pathParts = (key as string).split('.');
+        let currentValue: unknown = data;
+        for (const part of pathParts) {
+          currentValue = (currentValue as Record<string, unknown>)?.[part];
+        }
+        errorFieldValues[key] = currentValue;
+      }
+      manualErrors = errors;
     },
     get success() {
       return success;
@@ -138,7 +175,7 @@ const createState = <
 
   return state as unknown as IsRedirectForm extends true
     ? RedirectingFormClientState<S>
-    :  NonRedirectingFormClientState<S, Success>;
+    : NonRedirectingFormClientState<S, Success>;
 };
 
 export const createRedirectingFormClientState = <S extends ZFormObject>(

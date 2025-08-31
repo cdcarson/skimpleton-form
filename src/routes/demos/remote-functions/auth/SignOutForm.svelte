@@ -13,7 +13,6 @@
   id={formId}
   {...signOut.enhance(async ({ submit }) => {
     try {
-     
       await submit();
       if (!signOut.result) {
         throw new Error('Missing result');
@@ -25,9 +24,8 @@
       }
       throw new Error('Missing result');
     } catch (error) {
-      
+      console.error(error);
       msg.clear();
     }
   })}
-  
 ></form>
