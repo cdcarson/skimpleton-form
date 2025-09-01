@@ -7,7 +7,7 @@ import type {
   ZFormPaths
 } from './types.js';
 import { formPath, uniqueId, validate } from './utils.js';
-import type { RemoteForm } from '@sveltejs/kit';
+import type { ActionFailure, RemoteForm, SubmitFunction } from '@sveltejs/kit';
 import { ENHANCED_FLAG } from './constants.js';
 import { AppMessageService } from '$lib/message/app-message.svelte.js';
 import { dev } from '$app/environment';
@@ -97,20 +97,26 @@ export class ClientFormState<S extends ZFormObject> {
   }
 }
 
+type EnhanceOptions = {
+  onSuccess?: (result: ServerFormState<ZFormObject>) => void | Promise<void>;
+  waitMessage?: string;
+  errorMessage?: string | ((errors: FormErrors<ZFormObject>) => string);
+};
+
 export const enhanceRemoteFunctionForm = <Schema extends ZFormObject>(
   formFunction: RemoteForm<ServerFormState<Schema>>,
   formState: ClientFormState<Schema>,
-  options: {
-    onSuccess?: (result: ServerFormState<Schema>) => void|Promise<void>;
-  } = {}
+  options: EnhanceOptions = {}
 ) => {
   const msg = AppMessageService.get();
   let result = $derived(formFunction.result);
-  return formFunction.enhance(async ({ submit, data: formData }) => {
+  return formFunction.enhance(async ({ submit, data: formData, form }) => {
     if (!formState.valid) {
-      msg.error('Please correct the error(s).');
+      msg.error(getErrorToastMessage(formState.errors, options.errorMessage));
       return;
     }
+    msg.wait(options.waitMessage || 'Please wait...');
+    formState.submitting = true;
     formData.set(ENHANCED_FLAG, ENHANCED_FLAG);
     await submit();
     if (!result) {
@@ -118,21 +124,101 @@ export const enhanceRemoteFunctionForm = <Schema extends ZFormObject>(
         console.log('Missing result in remote function form');
       }
       msg.clear();
+      formState.submitting = false;
       return;
     }
     if (result.success) {
       if (result.success.isRedirect) {
         await goto(result.success.location);
-        
-      } 
+      }
       if (options.onSuccess) {
         await options.onSuccess(result);
       }
       msg.success(result.success.message);
+      formState.submitting = false;
       return;
     }
     formState.errors = result.errors;
-    msg.error('Please correct the error(s).');
+    scrollToFirstError(form);
+    msg.error(getErrorToastMessage(formState.errors, options.errorMessage));
+    formState.submitting = false;
     return;
   });
+};
+
+export const enhanceActionForm = <Schema extends ZFormObject>(
+  formState: ClientFormState<Schema>,
+  options: EnhanceOptions = {}
+): SubmitFunction<ServerFormState<Schema>, ServerFormState<Schema>> => {
+  const msg = AppMessageService.get();
+  const fn: SubmitFunction<
+    ServerFormState<Schema>,
+    ServerFormState<Schema>
+  > = async (input) => {
+    if (!formState.valid) {
+      msg.error(getErrorToastMessage(formState.errors, options.errorMessage));
+      input.cancel();
+      scrollToFirstError(input.formElement);
+      return;
+    }
+    formState.submitting = true;
+    msg.wait(options.waitMessage || 'Please wait...');
+    return async (r) => {
+      if (
+        'error' === r.result.type ||
+        'redirect' === r.result.type ||
+        !r.result.data
+      ) {
+        msg.clear();
+        formState.submitting = false;
+        return;
+      }
+      const data = r.result.data;
+      if (r.result.type === 'failure') {
+        formState.data = data.data;
+        formState.errors = data.errors;
+        msg.error(getErrorToastMessage(formState.errors, options.errorMessage));
+        scrollToFirstError(input.formElement);
+        formState.submitting = false;
+        return;
+      }
+
+      if (r.result.type === 'success' && data.success) {
+        formState.data = data.data;
+
+        if (data.success.isRedirect === true) {
+          await goto(data.success.location);
+        }
+        if (options.onSuccess) {
+          await options.onSuccess(data);
+        }
+        msg.success(data.success.message);
+        formState.submitting = false;
+        return;
+      }
+      msg.clear();
+      formState.submitting = false;
+      await r.update();
+    };
+  };
+  return fn;
+};
+
+const getErrorToastMessage = (
+  errors: FormErrors<ZFormObject>,
+  option?: string | ((errors: FormErrors<ZFormObject>) => string)
+): string => {
+  if (typeof option === 'function') {
+    return option(errors);
+  }
+  if (typeof option === 'string' && option.length > 0) {
+    return option;
+  }
+  return `Please correct the error${Object.keys(errors).length > 1 ? 's' : ''}.`;
+};
+const scrollToFirstError = (formElement: HTMLFormElement) => {
+  const errorElement = formElement.querySelector('[data-error]');
+  if (errorElement) {
+    errorElement.scrollIntoView({ behavior: 'smooth', block: 'center' });
+  }
 };
