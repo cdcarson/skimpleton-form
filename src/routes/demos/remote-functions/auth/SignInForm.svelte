@@ -21,6 +21,7 @@
 <form
   {...signIn.enhance(async ({ submit }) => {
     try {
+      form.touchAll();
       if (!form.valid) {
         msg.error('Please correct the error(s).');
         return;
@@ -57,7 +58,6 @@
         placeholder="Email address"
         class="input"
         class:input-error={error}
-        onblur={() => form.touch('email')}
         aria-describedby={id + '-description'}
       />
       <div class="text-sm" id={id + '-description'}>
@@ -87,7 +87,6 @@
         placeholder="Your password"
         class="input"
         class:input-error={error}
-        onblur={() => form.touch('password')}
         aria-describedby={id + '-description'}
       />
       <div class="text-sm" id={id + '-description'}>

@@ -9,7 +9,7 @@ import type {
   NonRedirectingFormState,
   NonRedirectingFormClientState
 } from './types.js';
-import { getFormAllTouched, formPath, uniqueId, validate } from './utils.js';
+import { formPath, uniqueId, validate } from './utils.js';
 
 const createState = <
   S extends ZFormObject,
@@ -31,13 +31,89 @@ const createState = <
   let manualErrors: FormErrors<S> = $state(
     initialState ? initialState.errors : {}
   );
-  let touched: FormTouched<S> = $state({});
-
   // Success state - handle both types
   let success = $state(initialState ? initialState.success : undefined);
 
+  // Track initial field values for auto-touch detection
+  let initialFieldValues: Record<string, unknown> = {};
+
+  // Force touched state: 'all' | 'none' | null (null means auto-detect)
+  let forceTouched: 'all' | 'none' | null = $state(null);
+
   // Track field values when manual errors are set
   let errorFieldValues: Record<string, unknown> = $state({});
+
+  // Initialize initial field values for touch detection
+  const initializeFieldValues = (currentData: z.infer<S>) => {
+    const allPaths = getAllFieldPaths(schema);
+    initialFieldValues = {};
+    for (const path of allPaths) {
+      const pathParts = path.split('.');
+      let value: unknown = currentData;
+      for (const part of pathParts) {
+        value = (value as Record<string, unknown>)?.[part];
+      }
+      initialFieldValues[path] = value;
+    }
+  };
+
+  // Helper to get all field paths from schema
+  const getAllFieldPaths = (schema: S): string[] => {
+    const paths: string[] = [];
+    const shape = schema.shape;
+
+    for (const key in shape) {
+      const field = shape[key];
+      // Check if it's a nested object
+      if (field && typeof field === 'object' && '_def' in field) {
+        const def = (field as unknown as { _def: { typeName: string } })._def;
+        if (def.typeName === 'ZodObject') {
+          // Nested object - get sub-paths
+          const subShape = (
+            field as unknown as { shape: Record<string, unknown> }
+          ).shape;
+          for (const subKey in subShape) {
+            const subField = subShape[subKey];
+            if (
+              subField &&
+              typeof subField === 'object' &&
+              '_def' in subField
+            ) {
+              const subDef = (
+                subField as unknown as { _def: { typeName: string } }
+              )._def;
+              if (subDef.typeName === 'ZodObject') {
+                // Double nested
+                const subSubShape = (
+                  subField as unknown as { shape: Record<string, unknown> }
+                ).shape;
+                for (const subSubKey in subSubShape) {
+                  paths.push(`${key}.${subKey}.${subSubKey}`);
+                }
+              } else {
+                paths.push(`${key}.${subKey}`);
+              }
+            } else {
+              paths.push(`${key}.${subKey}`);
+            }
+          }
+        } else if (def.typeName === 'ZodArray') {
+          // Array - we'll track the array itself
+          paths.push(key);
+        } else {
+          // Primitive field
+          paths.push(key);
+        }
+      } else {
+        paths.push(key);
+      }
+    }
+
+    return paths;
+  };
+
+  // Initialize on creation
+  initializeFieldValues(data);
 
   // If we have initial errors, track the field values
   if (initialState && initialState.errors) {
@@ -82,10 +158,58 @@ const createState = <
 
   const valid = $derived(Object.keys(errors).length === 0);
 
+  // Auto-derive touched state
+  const touched: FormTouched<S> = $derived.by(() => {
+    if (forceTouched === 'none') {
+      return {};
+    }
+
+    if (forceTouched === 'all') {
+      const allTouched: FormTouched<S> = {};
+      const paths = getAllFieldPaths(schema);
+      for (const path of paths) {
+        allTouched[path as keyof FormTouched<S>] = true;
+      }
+      return allTouched;
+    }
+
+    // Auto-detect changed fields
+    const autoTouched: FormTouched<S> = {};
+    const currentPaths = getAllFieldPaths(schema);
+
+    for (const path of currentPaths) {
+      const pathParts = path.split('.');
+      let currentValue: unknown = data;
+      const initialValue: unknown = initialFieldValues[path];
+
+      for (const part of pathParts) {
+        currentValue = (currentValue as Record<string, unknown>)?.[part];
+      }
+
+      // Mark as touched if value has changed from initial
+      if (currentValue !== initialValue) {
+        autoTouched[path as keyof FormTouched<S>] = true;
+      }
+    }
+
+    // Also mark fields with manual errors as touched
+    for (const key in manualErrors) {
+      if (manualErrors[key as keyof FormErrors<S>]) {
+        autoTouched[key as keyof FormTouched<S>] = true;
+      }
+    }
+
+    return autoTouched;
+  });
+
   const shownErrors: FormErrors<S> = $derived.by(() => {
     const result: FormErrors<S> = {};
-    for (const key in errors) {
-      if (touched[key as keyof FormTouched<S>]) {
+    // Check all touched fields, not just fields with errors
+    for (const key in touched) {
+      if (
+        touched[key as keyof FormTouched<S>] &&
+        errors[key as keyof FormErrors<S>]
+      ) {
         result[key as keyof FormErrors<S>] = errors[key as keyof FormErrors<S>];
       }
     }
@@ -138,6 +262,8 @@ const createState = <
         errorFieldValues[key] = currentValue;
       }
       manualErrors = errors;
+      // Reset forceTouched to allow auto-detection of only fields with errors
+      forceTouched = null;
     },
     get success() {
       return success;
@@ -145,19 +271,11 @@ const createState = <
     set success(value) {
       success = value;
     },
-    touch: (path: ZFormPaths<S>) => {
-      const { formName } = formPath(schema, path);
-      touched[formName as keyof FormTouched<S>] = true;
-    },
-    untouch: (path: ZFormPaths<S>) => {
-      const { formName } = formPath(schema, path);
-      delete touched[formName as keyof FormTouched<S>];
-    },
     touchAll: () => {
-      touched = getFormAllTouched(schema, data);
+      forceTouched = 'all';
     },
     untouchAll: () => {
-      touched = {};
+      forceTouched = 'none';
     },
     controlName: (path: ZFormPaths<S>) => {
       const { formName } = formPath(schema, path);

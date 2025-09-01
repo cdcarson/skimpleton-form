@@ -104,6 +104,10 @@ export type BaseFormState<S extends ZFormObject> = {
   submitted: boolean;
 };
 
+export type FormState<S extends ZFormObject> = {
+
+};
+
 export type RedirectingFormState<S extends ZFormObject> = BaseFormState<S> & {
   success?: {
     isRedirect: true;
@@ -185,8 +189,6 @@ export type BaseFormClientState<S extends ZFormObject> = BaseFormState<S> & {
   shownErrors: FormErrors<S>;
   baseId: string;
   setErrors: (errors: FormErrors<S>) => void;
-  touch: (path: ZFormPaths<S>) => void;
-  untouch: (path: ZFormPaths<S>) => void;
   touchAll: () => void;
   untouchAll: () => void;
   controlName: (path: ZFormPaths<S>) => string;

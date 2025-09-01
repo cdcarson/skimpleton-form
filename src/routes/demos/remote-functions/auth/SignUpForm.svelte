@@ -56,7 +56,6 @@
         placeholder="Your full name"
         class="input"
         class:input-error={error}
-        onblur={() => form.touch('name')}
         aria-describedby={id + '-description'}
       />
       <div class="text-sm" id={id + '-description'}>
@@ -81,7 +80,6 @@
         placeholder="Email address"
         class="input"
         class:input-error={error}
-        onblur={() => form.touch('email')}
         aria-describedby={id + '-description'}
       />
       <div class="text-sm" id={id + '-description'}>
@@ -111,7 +109,6 @@
         placeholder="Choose a password"
         class="input"
         class:input-error={error}
-        onblur={() => form.touch('password')}
         aria-describedby={id + '-description'}
       />
       <div class="text-sm" id={id + '-description'}>

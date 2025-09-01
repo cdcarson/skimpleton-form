@@ -116,23 +116,34 @@ describe('createRedirectingFormClientState', () => {
     });
   });
 
-  it('touches and untouches fields', () => {
+  it('automatically marks fields as touched when changed', () => {
     const state = createRedirectingFormClientState(schema, defaultData, null);
 
-    state.touch('name');
-    expect(state.touched).toEqual({ name: true });
-    expect(state.shownErrors).toEqual({ name: 'Name is required' });
+    // Initially nothing is touched
+    expect(state.touched).toEqual({});
+    expect(state.shownErrors).toEqual({});
 
-    state.touch('email');
+    // Change a field value (still invalid)
+    state.data = { ...state.data, email: 'notanemail' };
+    expect(state.touched).toEqual({ email: true });
+    expect(state.shownErrors).toEqual({ email: 'Invalid email' });
+
+    // Change another field to a valid value
+    state.data = { ...state.data, name: 'John' };
     expect(state.touched).toEqual({ name: true, email: true });
     expect(state.shownErrors).toEqual({
-      name: 'Name is required',
       email: 'Invalid email'
     });
 
-    state.untouch('name');
-    expect(state.touched).toEqual({ email: true });
-    expect(state.shownErrors).toEqual({ email: 'Invalid email' });
+    // Reset email to its original value - should no longer be touched
+    state.data = { ...state.data, email: '' };
+    expect(state.touched).toEqual({ name: true });
+    expect(state.shownErrors).toEqual({}); // No errors shown because name is valid
+
+    // Change name back to original value - nothing touched now
+    state.data = { ...state.data, name: '' };
+    expect(state.touched).toEqual({});
+    expect(state.shownErrors).toEqual({});
   });
 
   it('touches all fields', () => {
@@ -357,9 +368,14 @@ describe('createNonRedirectingFormClientState', () => {
     expect(state.errors['user.name']).toBe('Name required');
     expect(state.errors['user.email']).toBe('Invalid email');
 
-    state.touch('user.name');
-    expect(state.touched).toEqual({ 'user.name': true });
-    expect(state.shownErrors).toEqual({ 'user.name': 'Name required' });
+    // Change nested field - marks the parent object as touched
+    state.data = {
+      ...state.data,
+      user: { ...state.data.user, name: 'J' }
+    };
+    // When we replace the entire user object, 'user' is marked as touched
+    expect(state.touched['user']).toBe(true);
+    expect(state.shownErrors).toEqual({}); // 'J' is valid (min length 1)
   });
 
   it('handles array schemas', () => {
@@ -479,5 +495,181 @@ describe('client state edge cases', () => {
     state.setErrors({});
 
     expect(state.errors).toEqual({});
+  });
+
+  it('marks fields with external errors as touched', () => {
+    const state = createRedirectingFormClientState(schema, defaultData, null);
+
+    // Initially nothing is touched
+    expect(state.touched).toEqual({});
+    expect(state.shownErrors).toEqual({});
+
+    // Set external error on field1
+    state.setErrors({
+      field1: 'Server error'
+    });
+
+    // Field with external error should be marked as touched
+    expect(state.touched.field1).toBe(true);
+    expect(state.shownErrors.field1).toBe('Server error');
+
+    // Change the field value - error should clear but field remains touched
+    state.data = {
+      ...state.data,
+      field1: 'new value'
+    };
+
+    expect(state.touched.field1).toBe(true);
+    expect(state.shownErrors).toEqual({});
+  });
+
+  it('shows external errors on fields that have not changed from initial value', () => {
+    // This simulates the SignInForm scenario
+    const signInSchema = z.object({
+      email: z.string().email('Invalid email'),
+      password: z.string().min(1, 'Password required')
+    }) satisfies ZFormObject;
+
+    const state = createRedirectingFormClientState(
+      signInSchema,
+      { email: '', password: '' },
+      null
+    );
+
+    // Initially, validation errors exist but aren't shown (not touched)
+    expect(state.errors).toEqual({
+      email: 'Invalid email',
+      password: 'Password required'
+    });
+    expect(state.touched).toEqual({});
+    expect(state.shownErrors).toEqual({});
+
+    // Simulate server response with external error
+    // Email field still has its initial value ''
+    state.setErrors({
+      email: 'Email not found'
+    });
+
+    // The external error should show immediately
+    expect(state.errors.email).toBe('Email not found');
+    expect(state.touched.email).toBe(true); // Should be marked as touched
+    expect(state.shownErrors.email).toBe('Email not found'); // Should show the error
+  });
+
+  it('shows external errors with empty validation errors', () => {
+    // Test a form that starts with valid data
+    const validSchema = z.object({
+      email: z.string(),
+      password: z.string()
+    }) satisfies ZFormObject;
+
+    const state = createRedirectingFormClientState(
+      validSchema,
+      { email: 'test@example.com', password: 'password123' },
+      null
+    );
+
+    // Initially, no errors
+    expect(state.errors).toEqual({});
+    expect(state.touched).toEqual({});
+    expect(state.shownErrors).toEqual({});
+
+    // Set external error
+    state.setErrors({
+      email: 'Email not found'
+    });
+
+    // Should show the error
+    expect(state.errors.email).toBe('Email not found');
+    expect(state.touched.email).toBe(true);
+    expect(state.shownErrors.email).toBe('Email not found');
+  });
+
+  it('simulates exact SignInForm flow with touchAll before submit', () => {
+    const signInSchema = z.object({
+      email: z.string().email('Invalid email'),
+      password: z.string().min(1, 'Password required')
+    }) satisfies ZFormObject;
+
+    const state = createRedirectingFormClientState(
+      signInSchema,
+      { email: '', password: '' },
+      null
+    );
+
+    // User clicks submit without entering anything
+    // Form calls touchAll() to show validation errors
+    state.touchAll();
+
+    // Check validation errors are shown
+    expect(state.shownErrors).toEqual({
+      email: 'Invalid email',
+      password: 'Password required'
+    });
+
+    // User enters valid data
+    state.data = {
+      email: 'user@example.com',
+      password: 'mypassword'
+    };
+
+    // Errors should clear
+    expect(state.errors).toEqual({});
+    expect(state.shownErrors).toEqual({});
+
+    // Form submits, server returns error
+    state.setErrors({
+      email: 'Email not found'
+    });
+
+    // External error should show
+    expect(state.errors.email).toBe('Email not found');
+    expect(state.touched.email).toBe(true);
+    expect(state.shownErrors.email).toBe('Email not found');
+  });
+
+  it('resets forceTouched when external errors are set', () => {
+    const signInSchema = z.object({
+      email: z.string().email('Invalid email'),
+      password: z.string().min(1, 'Password required')
+    }) satisfies ZFormObject;
+
+    const state = createRedirectingFormClientState(
+      signInSchema,
+      { email: '', password: '' },
+      null
+    );
+
+    // Form calls touchAll() for validation
+    state.touchAll();
+
+    // All fields are touched
+    expect(state.touched).toEqual({
+      email: true,
+      password: true
+    });
+
+    // User enters data to make form valid, then clears it
+    state.data = { email: 'user@example.com', password: 'pass' };
+    state.data = { email: '', password: '' }; // Back to initial
+
+    // Server error comes back - setErrors should reset forceTouched
+    state.setErrors({
+      email: 'Custom server error'
+    });
+
+    // After setErrors, only email (with external error) should be touched
+    // Password should NOT be touched anymore
+    expect(state.errors).toEqual({
+      email: 'Custom server error',
+      password: 'Password required'
+    });
+    expect(state.touched).toEqual({
+      email: true // Only email is touched due to external error
+    });
+    expect(state.shownErrors).toEqual({
+      email: 'Custom server error'
+      // Password error NOT shown because it's not touched
+    });
   });
 });
