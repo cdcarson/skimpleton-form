@@ -1,125 +1,87 @@
 <script lang="ts">
   import { goto } from '$app/navigation';
-  import { createRedirectingFormClientState } from '$lib/form/client.svelte.js';
-  import ControlContainer from '$lib/ui/ControlContainer.svelte';
+  import { ClientFormState, enhanceRemoteFunctionForm } from '$lib/form/client.svelte.js';
   import { AppMessageService } from '$lib/message/app-message.svelte.js';
   import { signIn } from './data.remote.js';
   import { signInSchema } from './schemas.js';
   const msg = AppMessageService.get();
   let result = $derived(signIn.result);
-  const form = createRedirectingFormClientState(
+  const form = new ClientFormState(
     signInSchema,
     {
       email: '',
       password: '',
       remember: true
     },
-    signIn.result || null
+    signIn.result
   );
 </script>
 
 <form
-  {...signIn.enhance(async ({ submit }) => {
-    try {
-      form.touchAll();
-      if (!form.valid) {
-        msg.error('Please correct the error(s).');
-        return;
-      }
-      await submit();
-      if (!result) {
-        console.log('Missing result in sign in form');
-        msg.clear();
-        return;
-      }
-      if (result.success) {
-        console.log('result', result);
-        msg.success(result.success.message);
-        await goto(result.success.location);
-        return;
-      }
-      form.setErrors(result.errors);
-      msg.error('Please correct the error(s).');
-    } catch (error) {
-      console.error(error);
-      msg.clear();
-    }
-  })}
+  {...enhanceRemoteFunctionForm(signIn, form)}
   class="flex flex-col gap-4"
 >
-  <ControlContainer class="space-y-2" schema={signInSchema} path="email" {form}>
-    {#snippet children(id, name, error)}
-      <label for={id} class="block">Email</label>
-      <input
-        type="email"
-        {name}
-        {id}
-        bind:value={form.data.email}
-        placeholder="Email address"
-        class="input"
-        class:input-error={error}
-        aria-describedby={id + '-description'}
-      />
-      <div class="text-sm" id={id + '-description'}>
-        {#if error}
-          <span class="text-red-700 dark:text-red-300">{error}</span>
-        {:else}
-          <span class="text-gray-700 dark:text-gray-300"
-            >Enter your email address.</span
-          >
-        {/if}
-      </div>
-    {/snippet}
-  </ControlContainer>
-  <ControlContainer
-    class="space-y-2"
-    schema={signInSchema}
-    path="password"
-    {form}
-  >
-    {#snippet children(id, name, error)}
-      <label for={id} class="block">Password</label>
-      <input
-        type="password"
-        {name}
-        {id}
-        bind:value={form.data.password}
-        placeholder="Your password"
-        class="input"
-        class:input-error={error}
-        aria-describedby={id + '-description'}
-      />
-      <div class="text-sm" id={id + '-description'}>
-        {#if error}
-          <span class="text-red-700 dark:text-red-300">{error}</span>
-        {:else}
-          <span class="text-gray-700 dark:text-gray-300">
-            Enter your password.
-          </span>
-        {/if}
-      </div>
-    {/snippet}
-  </ControlContainer>
+  <div class="space-y-1">
+    <label for={form.controlId('email')} class="block">Email</label>
+    <input
+      type="email"
+      name={form.controlName('email')}
+      id={form.controlId('email')}
+      bind:value={form.data.email}
+      placeholder="Email address"
+      class="input"
+      class:input-error={form.shownErrors.email}
+      aria-describedby={form.controlId('email') + '-description'}
+    />
+    <div class="text-sm" id={form.controlId('email') + '-description'}>
+      {#if form.shownErrors.email}
+        <span class="text-red-700 dark:text-red-300"
+          >{form.shownErrors.email}</span
+        >
+      {:else}
+        <span class="text-gray-700 dark:text-gray-300"
+          >Enter your email address.</span
+        >
+      {/if}
+    </div>
+  </div>
+  <div class="space-y-1">
+    <label for={form.controlId('password')} class="block">Password</label>
+    <input
+      type="password"
+      name={form.controlName('password')}
+      id={form.controlId('password')}
+      bind:value={form.data.password}
+      placeholder="Your password"
+      class="input"
+      class:input-error={form.shownErrors.password}
+      aria-describedby={form.controlId('password') + '-description'}
+    />
+    <div class="text-sm" id={form.controlId('password') + '-description'}>
+      {#if form.shownErrors.password}
+        <span class="text-red-700 dark:text-red-300"
+          >{form.shownErrors.password}</span
+        >
+      {:else}
+        <span class="text-gray-700 dark:text-gray-300">
+          Enter your password.
+        </span>
+      {/if}
+    </div>
+  </div>
 
-  <ControlContainer
-    class="space-y-2"
-    schema={signInSchema}
-    path="remember"
-    {form}
-  >
-    {#snippet children(id, name)}
-      <label class="label">
-        <input
-          type="checkbox"
-          {name}
-          {id}
-          bind:checked={form.data.remember}
-          class="checkbox checkbox-primary"
-        />
-        Remember me on this device.
-      </label>
-    {/snippet}
-  </ControlContainer>
+  <div class="space-y-1">
+    <label class="label" for={form.controlId('remember')}>
+      <input
+        type="checkbox"
+        name={form.controlName('remember')}
+        id={form.controlId('remember')}
+        bind:checked={form.data.remember}
+        class="checkbox checkbox-primary"
+      />
+      Remember me on this device.
+    </label>
+  </div>
   <div class="flex justify-end">
     <button type="submit" class="btn btn-primary" disabled={form.submitting}>
       Sign In

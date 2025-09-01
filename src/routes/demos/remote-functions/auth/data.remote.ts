@@ -6,7 +6,7 @@ import {
   logout,
   setAuthRedirect
 } from '$demo/authentication/authentication.server.js';
-import { createRedirectingRemoteFunctionHandler } from '$lib/form/server.js';
+import { RemoteFunctionHandler } from '$lib/form/server.js';
 import zod from 'zod';
 import { signInSchema, signUpSchema } from './schemas.js';
 import { verify } from 'argon2';
@@ -14,11 +14,7 @@ import { resolve } from '$app/paths';
 
 export const signUp = form(async (formData) => {
   const event = getRequestEvent();
-  const handler = createRedirectingRemoteFunctionHandler(
-    signUpSchema,
-    formData,
-    event
-  );
+  const handler = new RemoteFunctionHandler(signUpSchema, formData, event);
 
   if (!handler.valid) {
     return handler.fail();
@@ -45,11 +41,7 @@ export const signUp = form(async (formData) => {
 
 export const signIn = form(async (formData) => {
   const event = getRequestEvent();
-  const handler = createRedirectingRemoteFunctionHandler(
-    signInSchema,
-    formData,
-    event
-  );
+  const handler = new RemoteFunctionHandler(signInSchema, formData, event);
   if (!handler.valid) {
     return handler.fail();
   }
@@ -85,11 +77,7 @@ export const signIn = form(async (formData) => {
 
 export const signOut = form(async (formData) => {
   const event = getRequestEvent();
-  const handler = createRedirectingRemoteFunctionHandler(
-    zod.object({}),
-    formData,
-    event
-  );
+  const handler = new RemoteFunctionHandler(zod.object({}), formData, event);
   setAuthRedirect(event, resolve('/demos/remote-functions'));
   logout(event);
   return handler.redirect({

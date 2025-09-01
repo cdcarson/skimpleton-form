@@ -5,169 +5,61 @@ import {
   type RequestEvent
 } from '@sveltejs/kit';
 import type {
-  NonRedirectingFormState,
-  NonRedirectingRemoteFunctionHandler,
-  NonRedirectingActionHandler,
-  RedirectingFormState,
-  RedirectingRemoteFunctionHandler,
-  RedirectingActionHandler,
-  ZFormObject,
-  NonRedirectingFormSuccessParam,
-  NonRedirectingFormSuccess
+  FormErrors,
+  FormSuccess,
+  ServerFormState,
+  ZFormObject
 } from './types.js';
+import type z from 'zod';
 import {
-  createFormStateFromFormData,
-  getFormAllTouched,
   isFetchRequest,
+  readFormData,
+  validate,
+  cloneFormData,
   removeFiles
 } from './utils.js';
-import { setFlashMessage } from '$lib/message/flash-message.server.js';
 import { StatusCodes } from 'http-status-codes';
+import { setFlashMessage } from '$lib/message/flash-message.server.js';
+import { ENHANCED_FLAG } from './constants.js';
 
-export const createRedirectingRemoteFunctionHandler = <S extends ZFormObject>(
-  schema: S,
-  formData: FormData,
-  event: RequestEvent
-): RedirectingRemoteFunctionHandler<S> => {
-  const state = {
-    ...createFormStateFromFormData(schema, formData),
-    submitted: true
-  };
-
-  const failFn = (
-    newErrors?: Record<string, string>
-  ): RedirectingFormState<S> => {
-    const errors = newErrors || state.errors;
-
+export class BaseServerFormHandler<S extends ZFormObject> {
+  public readonly schema: S;
+  public readonly formData: FormData;
+  public readonly event: RequestEvent;
+  public readonly data: z.infer<S>;
+  public readonly errors: FormErrors<S>;
+  public readonly valid: boolean;
+  public readonly enhancedFlagSet: boolean;
+  constructor(schema: S, formData: FormData, event: RequestEvent) {
+    this.schema = schema;
+    this.formData = cloneFormData(formData);
+    this.event = event;
+    this.enhancedFlagSet = this.formData.get(ENHANCED_FLAG) === ENHANCED_FLAG;
+    this.formData.delete(ENHANCED_FLAG);
+    this.data = readFormData(schema, formData) as z.infer<S>;
+    this.errors = validate(schema, this.data);
+    this.valid = Object.keys(this.errors).length === 0;
+  }
+  public succeed<Success extends { message: string } = { message: string }>(
+    successData: FormSuccess<false, Success>
+  ): ServerFormState<S, false, Success> {
     return {
-      data: removeFiles(state.data),
-      errors,
-      touched: getFormAllTouched(schema, state.data),
-      valid: false,
-      submitted: true
-    };
-  };
-
-  const redirectFn = (successData: {
-    message: string;
-    location: string;
-  }): RedirectingFormState<S> => {
-    const isFetch = isFetchRequest(event.request);
-    console.log('isFetch', isFetch);
-    // For non-fetch requests, set flash message and throw redirect
-    // if (!isFetch) {
-    //   setFlashMessage(event, {
-    //     type: 'success',
-    //     message: successData.message
-    //   });
-
-    //   throw redirect(StatusCodes.SEE_OTHER, successData.location);
-    // }
-
-    // For fetch requests, return success state with redirect info
-    return {
-      data: removeFiles(state.data),
+      data: removeFiles(this.data),
       errors: {},
-      touched: {},
       valid: true,
-      submitted: true,
-      success: {
-        ...successData,
-        isRedirect: true
-      }
-    };
-  };
-
-  return {
-    ...state,
-    fail: failFn,
-    redirect: redirectFn
-  };
-};
-
-export const createNonRedirectingRemoteFunctionHandler = <
-  S extends ZFormObject,
-  Success extends Record<string, unknown> | undefined = undefined
->(
-  schema: S,
-  formData: FormData
-): NonRedirectingRemoteFunctionHandler<S, Success> => {
-  const state = {
-    ...createFormStateFromFormData(schema, formData),
-    submitted: true
-  };
-
-  const failFn = (
-    newErrors?: Record<string, string>
-  ): NonRedirectingFormState<S, Success> => {
-    const errors = newErrors || state.errors;
-
-    return {
-      data: removeFiles(state.data),
-      errors,
-      touched: getFormAllTouched(schema, state.data),
-      valid: false,
-      submitted: true
-    };
-  };
-  const succeedFn = (
-    successData: NonRedirectingFormSuccessParam<Success>
-  ): NonRedirectingFormState<S, Success> => {
-    return {
-      data: removeFiles(state.data),
-      errors: {},
-      touched: {},
-      valid: true,
-      submitted: true,
       success: {
         ...successData,
         isRedirect: false
-      } as NonRedirectingFormSuccess<Success>
+      }
     };
-  };
-
-  return {
-    ...state,
-    fail: failFn,
-    succeed: succeedFn
-  };
-};
-
-export const createRedirectingActionHandler = <S extends ZFormObject>(
-  schema: S,
-  event: RequestEvent,
-  formData: FormData
-): RedirectingActionHandler<S> => {
-  const state = {
-    ...createFormStateFromFormData(schema, formData),
-    submitted: true
-  };
-
-  const failFn = (
-    newErrors?: Record<string, string>,
-    status: StatusCodes = StatusCodes.BAD_REQUEST
-  ): ActionFailure<RedirectingFormState<S>> => {
-    const errors = newErrors || state.errors;
-
-    return fail(status, {
-      data: removeFiles(state.data),
-      errors,
-      touched: getFormAllTouched(schema, state.data),
-      valid: false,
-      submitted: true
-    });
-  };
-
-  const redirectFn = (
-    successData: {
-      message: string;
-      location: string;
-    },
+  }
+  public redirect(
+    successData: Omit<FormSuccess<true>, 'isRedirect'>,
     status: StatusCodes = StatusCodes.SEE_OTHER
-  ): RedirectingFormState<S> => {
+  ): ServerFormState<S, true> {
     // For non-fetch requests, set flash message and throw redirect
-    if (!isFetchRequest(event.request)) {
-      setFlashMessage(event, {
+    if (!isFetchRequest(this.event.request) && !this.enhancedFlagSet) {
+      setFlashMessage(this.event, {
         type: 'success',
         message: successData.message
       });
@@ -175,73 +67,40 @@ export const createRedirectingActionHandler = <S extends ZFormObject>(
     }
 
     // For fetch requests, return success state with redirect info
+
     return {
-      data: removeFiles(state.data),
+      data: removeFiles(this.data),
       errors: {},
-      touched: {},
       valid: true,
-      submitted: true,
-      success: {
-        ...successData,
-        isRedirect: true
-      }
+      success: { ...successData, isRedirect: true }
     };
-  };
+  }
+}
 
-  return {
-    ...state,
-    fail: failFn,
-    redirect: redirectFn
-  };
-};
+export class RemoteFunctionHandler<
+  S extends ZFormObject
+> extends BaseServerFormHandler<S> {
+  public fail(newErrors?: FormErrors<S>): ServerFormState<S> {
+    return {
+      data: removeFiles(this.data),
+      errors: newErrors || this.errors,
+      valid: false
+    };
+  }
+}
 
-export const createNonRedirectingActionHandler = <
-  S extends ZFormObject,
-  Success extends Record<string, unknown> | undefined = undefined
->(
-  schema: S,
-  _event: RequestEvent,
-  formData: FormData
-): NonRedirectingActionHandler<S, Success> => {
-  const state = {
-    ...createFormStateFromFormData(schema, formData),
-    submitted: true
-  };
-
-  const failFn = (
-    newErrors?: Record<string, string>,
+export class ActionHandler<
+  S extends ZFormObject
+> extends BaseServerFormHandler<S> {
+  public fail(
+    newErrors?: FormErrors<S>,
     status: StatusCodes = StatusCodes.BAD_REQUEST
-  ): ActionFailure<NonRedirectingFormState<S, Success>> => {
-    const errors = newErrors || state.errors;
-
+  ): ActionFailure<ServerFormState<S>> {
     return fail(status, {
-      data: removeFiles(state.data),
-      errors,
-      touched: getFormAllTouched(schema, state.data),
+      data: removeFiles(this.data),
+      errors: newErrors || this.errors,
       valid: false,
       submitted: true
     });
-  };
-
-  const succeedFn = (
-    successData: NonRedirectingFormSuccessParam<Success>
-  ): NonRedirectingFormState<S, Success> => {
-    return {
-      data: removeFiles(state.data),
-      errors: {},
-      touched: {},
-      valid: true,
-      submitted: true,
-      success: {
-        ...successData,
-        isRedirect: false
-      } as NonRedirectingFormSuccess<Success>
-    };
-  };
-
-  return {
-    ...state,
-    fail: failFn,
-    succeed: succeedFn
-  };
-};
+  }
+}

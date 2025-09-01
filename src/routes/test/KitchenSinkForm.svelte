@@ -1,5 +1,5 @@
 <script lang="ts">
-  import { ClientFormState } from '$lib/form/client-form-state.svelte.js';
+  import { ClientFormState } from '$lib/form/client.svelte.js';
   import { kitchenSinkSchema } from './schemas.js';
   const form = new ClientFormState(
     kitchenSinkSchema,
@@ -14,9 +14,7 @@
         age: 18,
         email: 'foo@bar.com'
       },
-      touched: {},
       valid: false,
-      submitted: true,
       errors: {
         email: 'We could not find it.'
       }

@@ -139,8 +139,6 @@ export type ServerFormState<
   success?: FormSuccess<IsRedirect, Success>;
 };
 
-
-
 export type RedirectingFormState<S extends ZFormObject> = BaseFormState<S> & {
   success?: {
     isRedirect: true;

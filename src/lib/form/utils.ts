@@ -359,11 +359,11 @@ export const removeFiles = <T>(data: T): T => {
 
   // Handle plain objects
   if (typeof data === 'object') {
-    const result: any = {};
+    const result: Record<string, unknown> = {};
     for (const [key, value] of Object.entries(data)) {
       result[key] = removeFiles(value);
     }
-    return result;
+    return result as T;
   }
 
   // Return primitives (string, number, boolean) as-is
