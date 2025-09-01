@@ -7,7 +7,7 @@ import type {
   ZFormPaths
 } from './types.js';
 import { formPath, uniqueId, validate } from './utils.js';
-import type { ActionFailure, RemoteForm, SubmitFunction } from '@sveltejs/kit';
+import type { RemoteForm, SubmitFunction } from '@sveltejs/kit';
 import { ENHANCED_FLAG } from './constants.js';
 import { AppMessageService } from '$lib/message/app-message.svelte.js';
 import { dev } from '$app/environment';
@@ -109,7 +109,7 @@ export const enhanceRemoteFunctionForm = <Schema extends ZFormObject>(
   options: EnhanceOptions = {}
 ) => {
   const msg = AppMessageService.get();
-  let result = $derived(formFunction.result);
+  const result = $derived(formFunction.result);
   return formFunction.enhance(async ({ submit, data: formData, form }) => {
     if (!formState.valid) {
       msg.error(getErrorToastMessage(formState.errors, options.errorMessage));

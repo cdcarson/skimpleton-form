@@ -13,7 +13,6 @@ import z, {
   type ZodOptional,
   type ZodNullable
 } from 'zod';
-import type { ActionFailure } from '@sveltejs/kit';
 
 /**
  * Form schema types with depth restrictions
@@ -83,27 +82,6 @@ export type FormErrors<Z extends ZFormObject> = {
   [Path in ZDotPaths<Z>]?: string;
 };
 
-export type FormTouched<Z extends ZFormObject> = {
-  [Path in ZDotPaths<Z>]?: boolean;
-};
-
-/**
- * The base state of a form.
- *
- * This includes:
- * - The data of the form
- * - The errors of the form
- * - The touched state of the form
- * - The validity of the form
- */
-export type BaseFormState<S extends ZFormObject> = {
-  data: z.infer<S>;
-  errors: FormErrors<S>;
-  touched: FormTouched<S>;
-  valid: boolean;
-  submitted: boolean;
-};
-
 /**
  * The shape of form success. Indicates whether the form redirects or not.
  * If the form redirects, the success data is `{location: string, message: string}`.
@@ -137,110 +115,6 @@ export type ServerFormState<
   errors: FormErrors<S>;
   valid: boolean;
   success?: FormSuccess<IsRedirect, Success>;
-};
-
-export type RedirectingFormState<S extends ZFormObject> = BaseFormState<S> & {
-  success?: {
-    isRedirect: true;
-    location: string;
-    message: string;
-  };
-};
-
-export type NonRedirectingFormSuccess<
-  Success extends Record<string, unknown> | undefined = undefined
-> = {
-  isRedirect: false;
-  message: string;
-  // eslint-disable-next-line @typescript-eslint/no-empty-object-type
-} & (Success extends undefined ? {} : Success);
-
-export type NonRedirectingFormSuccessParam<
-  Success extends Record<string, unknown> | undefined = undefined
-> = Omit<NonRedirectingFormSuccess<Success>, 'isRedirect'>;
-
-export type NonRedirectingFormState<
-  S extends ZFormObject,
-  Success extends Record<string, unknown> | undefined = undefined
-> = BaseFormState<S> & {
-  success?: NonRedirectingFormSuccess<Success>;
-};
-
-export type RedirectingRemoteFunctionHandler<S extends ZFormObject> =
-  BaseFormState<S> & {
-    fail: (newErrors?: Record<string, string>) => RedirectingFormState<S>;
-    redirect: (successData: {
-      message: string;
-      location: string;
-    }) => RedirectingFormState<S>;
-  };
-
-export type NonRedirectingRemoteFunctionHandler<
-  S extends ZFormObject,
-  Success extends Record<string, unknown> | undefined = undefined
-> = BaseFormState<S> & {
-  fail: (newErrors?: Record<string, string>) => NonRedirectingFormState<S>;
-  succeed: (
-    successData: NonRedirectingFormSuccessParam<Success>
-  ) => NonRedirectingFormState<S, Success>;
-};
-
-export type RedirectingActionHandler<S extends ZFormObject> =
-  BaseFormState<S> & {
-    fail: (
-      newErrors?: Record<string, string>,
-      status?: number
-    ) => ActionFailure<RedirectingFormState<S>>;
-
-    redirect: (
-      successData: {
-        message: string;
-        location: string;
-      },
-      status?: number
-    ) => RedirectingFormState<S>;
-  };
-
-export type NonRedirectingActionHandler<
-  S extends ZFormObject,
-  Success extends Record<string, unknown> | undefined = undefined
-> = BaseFormState<S> & {
-  fail: (
-    newErrors?: Record<string, string>,
-    status?: number
-  ) => ActionFailure<NonRedirectingFormState<S, Success>>;
-
-  succeed: (
-    successData: NonRedirectingFormSuccessParam<Success>
-  ) => NonRedirectingFormState<S, Success>;
-};
-
-export type BaseFormClientState<S extends ZFormObject> = BaseFormState<S> & {
-  submitting: boolean;
-  shownErrors: FormErrors<S>;
-  baseId: string;
-  setErrors: (errors: FormErrors<S>) => void;
-  touchAll: () => void;
-  untouchAll: () => void;
-  controlName: (path: ZFormPaths<S>) => string;
-  controlId: (path: ZFormPaths<S>) => string;
-  controlDescriptionId: (path: ZFormPaths<S>) => string;
-};
-
-export type RedirectingFormClientState<S extends ZFormObject> =
-  BaseFormClientState<S> & {
-    success?: {
-      isRedirect: true;
-      location: string;
-      message: string;
-    };
-  };
-
-export type NonRedirectingFormClientState<
-  S extends ZFormObject,
-  Success extends Record<string, unknown> | undefined = undefined
-> = BaseFormClientState<S> & {
-  success?: NonRedirectingFormSuccess<Success>;
 };
 
 /**

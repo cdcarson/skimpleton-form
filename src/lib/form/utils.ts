@@ -1,10 +1,4 @@
-import type {
-  FormTouched,
-  ZFormObject,
-  BaseFormState,
-  FormErrors,
-  ZFormPaths
-} from './types.js';
+import type { ZFormObject, FormErrors, ZFormPaths } from './types.js';
 
 import {
   type z,
@@ -52,99 +46,6 @@ export const cloneFormData = (formData: FormData): FormData => {
     cloned.append(key, value);
   });
   return cloned;
-};
-
-/**
- * Creates a FormState from FormData
- * This includes reading the data, validating it, and returning the complete state
- */
-export const createFormStateFromFormData = <S extends ZFormObject>(
-  schema: S,
-  formData: FormData
-): Omit<BaseFormState<S>, 'submitted'> => {
-  const data = readFormData(schema, formData) as z.infer<S>;
-  const errors = validate(schema, data);
-  const valid = Object.keys(errors).length === 0;
-
-  return {
-    data,
-    errors,
-    touched: {},
-    valid
-  };
-};
-
-/**
- * Marks all possible form paths as touched
- * This is useful when submitting a form to ensure all validation errors are shown
- */
-export const getFormAllTouched = <S extends ZFormObject>(
-  schema: S,
-  data: Partial<z.infer<S>>
-): FormTouched<S> => {
-  const touched = {} as FormTouched<S>;
-
-  // Helper to recursively traverse the schema and data to mark paths as touched
-  const touchSchemaRecursive = (
-    currentSchema: unknown,
-    currentData: unknown,
-    currentPath: string = ''
-  ): void => {
-    // Check if it's a ZodObject with shape property
-    if (
-      typeof currentSchema === 'object' &&
-      currentSchema !== null &&
-      'shape' in currentSchema &&
-      typeof currentSchema.shape === 'object' &&
-      currentSchema.shape !== null
-    ) {
-      // It's a ZodObject
-      for (const [key, fieldSchema] of Object.entries(currentSchema.shape)) {
-        const path = currentPath ? `${currentPath}.${key}` : key;
-        const dataAtKey =
-          typeof currentData === 'object' &&
-          currentData !== null &&
-          key in currentData
-            ? (currentData as Record<string, unknown>)[key]
-            : undefined;
-
-        // For nested objects, recurse
-        if (
-          typeof fieldSchema === 'object' &&
-          fieldSchema &&
-          'shape' in fieldSchema &&
-          fieldSchema.shape
-        ) {
-          touchSchemaRecursive(fieldSchema, dataAtKey, path);
-        }
-        // For arrays, mark indices based on actual data
-        else if (fieldSchema instanceof ZodArray) {
-          if (Array.isArray(dataAtKey)) {
-            for (let i = 0; i < dataAtKey.length; i++) {
-              const arrayPath = `${path}.${i}`;
-              (touched as Record<string, boolean>)[arrayPath] = true;
-            }
-          }
-        }
-        // For primitives, mark the path
-        else {
-          (touched as Record<string, boolean>)[path] = true;
-        }
-      }
-    } else if (
-      currentSchema instanceof ZodArray &&
-      Array.isArray(currentData)
-    ) {
-      // Direct array at current path
-      for (let i = 0; i < currentData.length; i++) {
-        const path = currentPath ? `${currentPath}.${i}` : `${i}`;
-        (touched as Record<string, boolean>)[path] = true;
-      }
-    }
-  };
-
-  touchSchemaRecursive(schema, data);
-  return touched;
 };
 
 /**

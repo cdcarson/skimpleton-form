@@ -1,11 +1,11 @@
 <script lang="ts">
-  import { goto } from '$app/navigation';
-  import { ClientFormState, enhanceRemoteFunctionForm } from '$lib/form/client.svelte.js';
-  import { AppMessageService } from '$lib/message/app-message.svelte.js';
+  import {
+    ClientFormState,
+    enhanceRemoteFunctionForm
+  } from '$lib/form/client.svelte.js';
   import { signIn } from './data.remote.js';
   import { signInSchema } from './schemas.js';
-  const msg = AppMessageService.get();
-  let result = $derived(signIn.result);
+
   const form = new ClientFormState(
     signInSchema,
     {
@@ -17,10 +17,7 @@
   );
 </script>
 
-<form
-  {...enhanceRemoteFunctionForm(signIn, form)}
-  class="flex flex-col gap-4"
->
+<form {...enhanceRemoteFunctionForm(signIn, form)} class="flex flex-col gap-4">
   <div class="space-y-1">
     <label for={form.controlId('email')} class="block">Email</label>
     <input
