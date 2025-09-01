@@ -104,9 +104,42 @@ export type BaseFormState<S extends ZFormObject> = {
   submitted: boolean;
 };
 
-export type FormState<S extends ZFormObject> = {
+/**
+ * The shape of form success. Indicates whether the form redirects or not.
+ * If the form redirects, the success data is `{location: string, message: string}`.
+ * If the form does not redirect, the shape is `{message: string}` plus the shape defined by `Success`.
+ */
+export type FormSuccess<
+  IsRedirect extends boolean,
+  Success extends { message: string } = { message: string }
+> = {
+  isRedirect: IsRedirect;
+} & (IsRedirect extends true ? { location: string; message: string } : Success);
 
+/**
+ * Base form state, shared by server and client.
+ */
+export type FormState<S extends ZFormObject> = {
+  data: z.infer<S>;
+  errors: FormErrors<S>;
+  valid: boolean;
 };
+
+/**
+ * Server form state, used by form actions and remote functions.
+ */
+export type ServerFormState<
+  S extends ZFormObject,
+  IsRedirect extends boolean = true,
+  Success extends { message: string } = { message: string }
+> = {
+  data: z.infer<S>;
+  errors: FormErrors<S>;
+  valid: boolean;
+  success?: FormSuccess<IsRedirect, Success>;
+};
+
+
 
 export type RedirectingFormState<S extends ZFormObject> = BaseFormState<S> & {
   success?: {

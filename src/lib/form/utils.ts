@@ -31,6 +31,30 @@ export const uniqueId = (prefix: string = 'skf'): string => {
 };
 
 /**
+ * Clones a FormData object by creating a new instance and copying all entries
+ *
+ * @param formData - The FormData object to clone
+ * @returns A new FormData object with all entries copied from the original
+ *
+ * @example
+ * ```ts
+ * const original = new FormData();
+ * original.append('name', 'John');
+ * original.append('age', '25');
+ *
+ * const cloned = cloneFormData(original);
+ * // cloned contains all the same entries as original
+ * ```
+ */
+export const cloneFormData = (formData: FormData): FormData => {
+  const cloned = new FormData();
+  formData.forEach((value, key) => {
+    cloned.append(key, value);
+  });
+  return cloned;
+};
+
+/**
  * Creates a FormState from FormData
  * This includes reading the data, validating it, and returning the complete state
  */
@@ -284,6 +308,66 @@ export const validate = <Schema extends ZFormObject>(
   }
 
   return errors;
+};
+
+/**
+ * Removes File objects from data, replacing them with undefined
+ * This is necessary because File objects cannot be serialized by devalue
+ *
+ * @param data - The data object to process
+ * @returns A new object with File instances replaced by undefined
+ *
+ * @example
+ * ```ts
+ * const data = {
+ *   name: 'John',
+ *   avatar: new File(['content'], 'avatar.jpg'),
+ *   age: 25n, // BigInt preserved
+ *   created: new Date() // Date preserved
+ * };
+ *
+ * const sanitized = removeFiles(data);
+ * // { name: 'John', avatar: undefined, age: 25n, created: Date }
+ * ```
+ */
+export const removeFiles = <T>(data: T): T => {
+  // Handle primitives and null/undefined
+  if (data === null || data === undefined) {
+    return data;
+  }
+
+  // Check if it's a File instance
+  if (data instanceof File) {
+    return undefined as T;
+  }
+
+  // Handle Date, BigInt, and other serializable objects
+  if (
+    data instanceof Date ||
+    typeof data === 'bigint' ||
+    data instanceof RegExp ||
+    data instanceof Map ||
+    data instanceof Set
+  ) {
+    return data;
+  }
+
+  // Handle arrays
+  if (Array.isArray(data)) {
+    return data.map((item) => removeFiles(item)) as T;
+  }
+
+  // Handle plain objects
+  if (typeof data === 'object') {
+    const result: any = {};
+    for (const [key, value] of Object.entries(data)) {
+      result[key] = removeFiles(value);
+    }
+    return result;
+  }
+
+  // Return primitives (string, number, boolean) as-is
+  return data;
 };
 
 /**

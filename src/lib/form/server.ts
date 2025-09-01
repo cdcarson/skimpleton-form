@@ -18,7 +18,8 @@ import type {
 import {
   createFormStateFromFormData,
   getFormAllTouched,
-  isFetchRequest
+  isFetchRequest,
+  removeFiles
 } from './utils.js';
 import { setFlashMessage } from '$lib/message/flash-message.server.js';
 import { StatusCodes } from 'http-status-codes';
@@ -39,7 +40,7 @@ export const createRedirectingRemoteFunctionHandler = <S extends ZFormObject>(
     const errors = newErrors || state.errors;
 
     return {
-      data: state.data,
+      data: removeFiles(state.data),
       errors,
       touched: getFormAllTouched(schema, state.data),
       valid: false,
@@ -65,7 +66,7 @@ export const createRedirectingRemoteFunctionHandler = <S extends ZFormObject>(
 
     // For fetch requests, return success state with redirect info
     return {
-      data: state.data,
+      data: removeFiles(state.data),
       errors: {},
       touched: {},
       valid: true,
@@ -102,7 +103,7 @@ export const createNonRedirectingRemoteFunctionHandler = <
     const errors = newErrors || state.errors;
 
     return {
-      data: state.data,
+      data: removeFiles(state.data),
       errors,
       touched: getFormAllTouched(schema, state.data),
       valid: false,
@@ -113,7 +114,7 @@ export const createNonRedirectingRemoteFunctionHandler = <
     successData: NonRedirectingFormSuccessParam<Success>
   ): NonRedirectingFormState<S, Success> => {
     return {
-      data: state.data,
+      data: removeFiles(state.data),
       errors: {},
       touched: {},
       valid: true,
@@ -149,7 +150,7 @@ export const createRedirectingActionHandler = <S extends ZFormObject>(
     const errors = newErrors || state.errors;
 
     return fail(status, {
-      data: state.data,
+      data: removeFiles(state.data),
       errors,
       touched: getFormAllTouched(schema, state.data),
       valid: false,
@@ -175,7 +176,7 @@ export const createRedirectingActionHandler = <S extends ZFormObject>(
 
     // For fetch requests, return success state with redirect info
     return {
-      data: state.data,
+      data: removeFiles(state.data),
       errors: {},
       touched: {},
       valid: true,
@@ -199,7 +200,7 @@ export const createNonRedirectingActionHandler = <
   Success extends Record<string, unknown> | undefined = undefined
 >(
   schema: S,
-  event: RequestEvent,
+  _event: RequestEvent,
   formData: FormData
 ): NonRedirectingActionHandler<S, Success> => {
   const state = {
@@ -214,7 +215,7 @@ export const createNonRedirectingActionHandler = <
     const errors = newErrors || state.errors;
 
     return fail(status, {
-      data: state.data,
+      data: removeFiles(state.data),
       errors,
       touched: getFormAllTouched(schema, state.data),
       valid: false,
@@ -226,7 +227,7 @@ export const createNonRedirectingActionHandler = <
     successData: NonRedirectingFormSuccessParam<Success>
   ): NonRedirectingFormState<S, Success> => {
     return {
-      data: state.data,
+      data: removeFiles(state.data),
       errors: {},
       touched: {},
       valid: true,

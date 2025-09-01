@@ -6,7 +6,9 @@ import {
   getFormDataArrayLength,
   readFormData,
   validate,
-  formPath
+  formPath,
+  cloneFormData,
+  removeFiles
 } from './utils.js';
 import type { ZFormObject } from './types.js';
 
@@ -446,6 +448,234 @@ describe('readFormData', () => {
 
     const result = readFormData(schema, formData);
     expect(result.largeNumber).toBe(BigInt('9007199254740993'));
+  });
+});
+
+describe('cloneFormData', () => {
+  it('creates a copy of FormData with all entries', () => {
+    const original = new FormData();
+    original.append('name', 'John');
+    original.append('age', '25');
+    original.append('tags', 'tag1');
+    original.append('tags', 'tag2');
+
+    const cloned = cloneFormData(original);
+
+    // Check that all entries are copied
+    expect(cloned.get('name')).toBe('John');
+    expect(cloned.get('age')).toBe('25');
+    expect(cloned.getAll('tags')).toEqual(['tag1', 'tag2']);
+  });
+
+  it('creates an independent copy', () => {
+    const original = new FormData();
+    original.append('name', 'John');
+
+    const cloned = cloneFormData(original);
+
+    // Modify original
+    original.append('name', 'Jane');
+    original.append('email', 'test@example.com');
+
+    // Cloned should not be affected
+    expect(cloned.getAll('name')).toEqual(['John']);
+    expect(cloned.has('email')).toBe(false);
+  });
+
+  it('handles File objects correctly', () => {
+    const original = new FormData();
+    const file = new File(['content'], 'test.txt', { type: 'text/plain' });
+    original.append('file', file);
+    original.append('name', 'Test');
+
+    const cloned = cloneFormData(original);
+
+    const clonedFile = cloned.get('file');
+    expect(clonedFile).toBe(file); // Should be the same File instance
+    expect(cloned.get('name')).toBe('Test');
+  });
+
+  it('handles empty FormData', () => {
+    const original = new FormData();
+    const cloned = cloneFormData(original);
+
+    expect(Array.from(cloned.keys())).toEqual([]);
+  });
+});
+
+describe('removeFiles', () => {
+  it('removes File objects at top level', () => {
+    const file = new File(['content'], 'test.txt', { type: 'text/plain' });
+    const data = {
+      name: 'John',
+      avatar: file,
+      age: 25
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual({
+      name: 'John',
+      avatar: undefined,
+      age: 25
+    });
+  });
+
+  it('removes File objects in nested objects', () => {
+    const file1 = new File(['content1'], 'profile.jpg');
+    const file2 = new File(['content2'], 'doc.pdf');
+
+    const data = {
+      user: {
+        name: 'Jane',
+        profile: {
+          avatar: file1,
+          resume: file2,
+          bio: 'Developer'
+        }
+      }
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual({
+      user: {
+        name: 'Jane',
+        profile: {
+          avatar: undefined,
+          resume: undefined,
+          bio: 'Developer'
+        }
+      }
+    });
+  });
+
+  it('removes File objects in arrays', () => {
+    const file1 = new File(['content1'], 'img1.jpg');
+    const file2 = new File(['content2'], 'img2.jpg');
+
+    const data = {
+      title: 'Gallery',
+      images: [file1, 'path/to/image', file2],
+      tags: ['photo', 'gallery']
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual({
+      title: 'Gallery',
+      images: [undefined, 'path/to/image', undefined],
+      tags: ['photo', 'gallery']
+    });
+  });
+
+  it('preserves BigInt values', () => {
+    const data = {
+      id: BigInt(12345678901234567890n),
+      count: BigInt(999),
+      name: 'Test'
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual(data);
+    expect(result.id).toBe(BigInt(12345678901234567890n));
+    expect(result.count).toBe(BigInt(999));
+  });
+
+  it('preserves Date objects', () => {
+    const now = new Date();
+    const data = {
+      created: now,
+      updated: new Date('2024-01-01'),
+      name: 'Event'
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual(data);
+    expect(result.created).toBe(now);
+    expect(result.updated).toEqual(new Date('2024-01-01'));
+  });
+
+  it('preserves RegExp, Map, and Set objects', () => {
+    const regex = /test/gi;
+    const map = new Map([
+      ['key1', 'value1'],
+      ['key2', 'value2']
+    ]);
+    const set = new Set([1, 2, 3]);
+
+    const data = {
+      pattern: regex,
+      mapping: map,
+      unique: set
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual(data);
+    expect(result.pattern).toBe(regex);
+    expect(result.mapping).toBe(map);
+    expect(result.unique).toBe(set);
+  });
+
+  it('handles null and undefined values', () => {
+    const data = {
+      nullValue: null,
+      undefinedValue: undefined,
+      name: 'Test'
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual(data);
+  });
+
+  it('handles primitive values directly', () => {
+    expect(removeFiles('string')).toBe('string');
+    expect(removeFiles(123)).toBe(123);
+    expect(removeFiles(true)).toBe(true);
+    expect(removeFiles(false)).toBe(false);
+    expect(removeFiles(null)).toBe(null);
+    expect(removeFiles(undefined)).toBe(undefined);
+  });
+
+  it('handles complex mixed structures', () => {
+    const file = new File(['content'], 'mixed.txt');
+    const data = {
+      user: {
+        name: 'Alice',
+        age: BigInt(30),
+        joined: new Date('2023-01-01'),
+        documents: [
+          { type: 'passport', file: file },
+          { type: 'license', file: null }
+        ]
+      },
+      settings: {
+        pattern: /^[a-z]+$/,
+        uploads: [file, file]
+      }
+    };
+
+    const result = removeFiles(data);
+
+    expect(result).toEqual({
+      user: {
+        name: 'Alice',
+        age: BigInt(30),
+        joined: new Date('2023-01-01'),
+        documents: [
+          { type: 'passport', file: undefined },
+          { type: 'license', file: null }
+        ]
+      },
+      settings: {
+        pattern: /^[a-z]+$/,
+        uploads: [undefined, undefined]
+      }
+    });
   });
 });
 
