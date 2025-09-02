@@ -15,6 +15,7 @@
     },
     signIn.result
   );
+  $inspect('data', form.data, 'errors', form.errors);
 </script>
 
 <form {...enhanceRemoteFunctionForm(signIn, form)} class="flex flex-col gap-4">
@@ -25,6 +26,7 @@
       name={form.controlName('email')}
       id={form.controlId('email')}
       bind:value={form.data.email}
+      oninput={() => form.touch('email')}
       placeholder="Email address"
       class="input"
       class:input-error={form.shownErrors.email}
@@ -49,6 +51,7 @@
       name={form.controlName('password')}
       id={form.controlId('password')}
       bind:value={form.data.password}
+      oninput={() => form.touch('password')}
       placeholder="Your password"
       class="input"
       class:input-error={form.shownErrors.password}
@@ -74,6 +77,7 @@
         name={form.controlName('remember')}
         id={form.controlId('remember')}
         bind:checked={form.data.remember}
+        oninput={() => form.touch('remember')}
         class="checkbox checkbox-primary"
       />
       Remember me on this device.

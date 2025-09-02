@@ -24,7 +24,8 @@ export const user = pgTable('user', {
 export const userRelations = relations(user, ({ one, many }) => ({
   account: one(userAccount),
   profile: one(userProfile),
-  sessions: many(userSession)
+  sessions: many(userSession),
+  todoLists: many(todoList)
 }));
 
 export const userSession = pgTable('user_session', {
@@ -85,7 +86,25 @@ export const userProfileRelations = relations(userProfile, ({ one }) => ({
   user: one(user, { fields: [userProfile.userId], references: [user.id] })
 }));
 
+export const todoList = pgTable('todo_list', {
+  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+  userId: bigint('user_id', { mode: 'bigint' })
+    .notNull()
+    .references(() => user.id),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date())
+});
+export const todoListRelations = relations(todoList, ({ one }) => ({
+  user: one(user, { fields: [todoList.userId], references: [user.id] })
+}));
+
 export type User = typeof user.$inferSelect;
 export type UserAccount = typeof userAccount.$inferSelect;
 export type UserProfile = typeof userProfile.$inferSelect;
 export type UserSession = typeof userSession.$inferSelect;
+export type TodoList = typeof todoList.$inferSelect;

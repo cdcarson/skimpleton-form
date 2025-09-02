@@ -1,7 +1,9 @@
-<script lang="ts">
-  import KitchenSinkForm from './KitchenSinkForm.svelte';
+<script lang="ts"> 
+  import PopoverModal from '$demo/ui/modals/PopoverModal.svelte';
 </script>
 
-<main class="container mx-auto my-4 px-4">
-  <KitchenSinkForm />
-</main>
+<button popovertarget="popover-modal">Open Popover</button>
+
+<PopoverModal id="popover-modal" title="Popover Modal">
+  <button>Something to focus</button>
+</PopoverModal>

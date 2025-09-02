@@ -86,6 +86,7 @@
     "argon2": "^0.44.0",
     "dotenv": "^17.2.1",
     "drizzle-orm": "^0.44.5",
+    "focus-trap": "^7.6.5",
     "highlight.js": "^11.11.1",
     "http-status-codes": "^2.3.0",
     "postgres": "^3.4.7",

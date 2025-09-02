@@ -42,6 +42,7 @@ export const signUp = form(async (formData) => {
 export const signIn = form(async (formData) => {
   const event = getRequestEvent();
   const handler = new RemoteFunctionHandler(signInSchema, formData, event);
+  console.log('handler errors', handler.errors);
   if (!handler.valid) {
     return handler.fail();
   }

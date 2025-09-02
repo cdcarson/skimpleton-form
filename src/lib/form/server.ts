@@ -36,12 +36,12 @@ export class BaseServerFormHandler<S extends ZFormObject> {
     this.event = event;
     this.enhancedFlagSet = this.formData.get(ENHANCED_FLAG) === ENHANCED_FLAG;
     this.formData.delete(ENHANCED_FLAG);
-    this.data = readFormData(schema, formData) as z.infer<S>;
+    this.data = readFormData(schema, this.formData) as z.infer<S>;
     this.errors = validate(schema, this.data);
     this.valid = Object.keys(this.errors).length === 0;
   }
   public succeed<Success extends { message: string } = { message: string }>(
-    successData: FormSuccess<false, Success>
+    successData: Omit<FormSuccess<false, Success>, 'isRedirect'>
   ): ServerFormState<S, false, Success> {
     return {
       data: removeFiles(this.data),
@@ -50,7 +50,7 @@ export class BaseServerFormHandler<S extends ZFormObject> {
       success: {
         ...successData,
         isRedirect: false
-      }
+      } as FormSuccess<false, Success>
     };
   }
   public redirect(

@@ -277,8 +277,8 @@ form.errors.name; // string | undefined
 
 ## Next Steps
 
-- [Form Actions](/docs/form-actions) - Handle forms with SvelteKit form actions
-- [Remote Functions](/docs/remote-functions) - Use remote functions for modern forms
+- Form Actions - Handle forms with SvelteKit form actions
+- Remote Functions - Use remote functions for modern forms
 - Forms Guide (coming soon) - Learn about form validation and utilities
 - Server Handlers (coming soon) - Detailed guide on server-side handlers
 - Client State (coming soon) - Managing form state on the client
