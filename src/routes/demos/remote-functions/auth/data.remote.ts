@@ -6,7 +6,7 @@ import {
   logout,
   setAuthRedirect
 } from '$demo/authentication/authentication.server.js';
-import { RemoteFunctionHandler } from '$lib/form/server.js';
+import { RemoteFunctionHandler } from '$lib/form/handlers.server.js';
 import zod from 'zod';
 import { signInSchema, signUpSchema } from './schemas.js';
 import { verify } from 'argon2';

@@ -18,7 +18,6 @@ import {
   cloneFormData,
   removeFiles
 } from './utils.js';
-import { StatusCodes } from 'http-status-codes';
 import { setFlashMessage } from '$lib/message/flash-message.server.js';
 import { ENHANCED_FLAG } from './constants.js';
 
@@ -55,7 +54,7 @@ export class BaseServerFormHandler<S extends ZFormObject> {
   }
   public redirect(
     successData: Omit<FormSuccess<true>, 'isRedirect'>,
-    status: StatusCodes = StatusCodes.SEE_OTHER
+    status: number = 303 // SEE_OTHER
   ): ServerFormState<S, true> {
     // For non-fetch requests, set flash message and throw redirect
     if (!isFetchRequest(this.event.request) && !this.enhancedFlagSet) {
@@ -94,7 +93,7 @@ export class ActionHandler<
 > extends BaseServerFormHandler<S> {
   public fail(
     newErrors?: FormErrors<S>,
-    status: StatusCodes = StatusCodes.BAD_REQUEST
+    status: number = 400 // BAD_REQUEST
   ): ActionFailure<ServerFormState<S>> {
     return fail(status, {
       data: removeFiles(this.data),
