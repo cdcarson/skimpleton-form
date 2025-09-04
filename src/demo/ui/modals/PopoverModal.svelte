@@ -8,9 +8,16 @@
     footer?: Snippet;
   };
   let { id, children, title, footer }: Props = $props();
+
+  let dialog: HTMLDialogElement | undefined = $state();
+
+  export function close() {
+    dialog?.hidePopover();
+  }
 </script>
 
 <dialog
+  bind:this={dialog}
   {id}
   popover
   closedby="any"
@@ -20,9 +27,17 @@
     <h2 id={'modal-header-' + id}>
       {title}
     </h2>
-    <button popovertarget={id} popoverTargetAction="hide">Close</button>
+    <button
+      type="button"
+      class="button"
+      popovertarget={id}
+      popoverTargetAction="hide"
+    >
+      <span class="sr-only">Close</span>
+      <span class="icon-[bi--x-lg]"></span>
+    </button>
   </header>
-  <div class="grow bg-pink-50 p-4 overflow-y-scroll">
+  <div class="grow overflow-y-scroll bg-pink-50 p-4">
     {@render children()}
   </div>
   {#if footer}

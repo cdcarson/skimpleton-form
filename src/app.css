@@ -2,13 +2,15 @@
 @plugin '@tailwindcss/typography';
 @plugin '@iconify/tailwind4';
 
-@plugin "daisyui" {
-  themes:
-    light --default,
-    dark --prefersdark;
-}
-
 @custom-variant dark (&:where([data-theme=dark], [data-theme=dark] *));
 
 /* Documentation styles */
 @import './docs/styles.css';
+
+@import './demo/ui/controls.css';
+
+@layer base {
+  body {
+    @apply bg-white text-gray-900 dark:bg-gray-800 dark:text-gray-100;
+  }
+}

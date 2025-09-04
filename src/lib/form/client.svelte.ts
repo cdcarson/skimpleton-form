@@ -128,7 +128,8 @@ export const enhanceRemoteFunctionForm = <Schema extends ZFormObject>(
       return;
     }
     if (result.success) {
-      if (result.success.isRedirect) {
+      form.reset();
+      if (result.success.isRedirect && result.success.location) {
         await goto(result.success.location);
       }
       if (options.onSuccess) {

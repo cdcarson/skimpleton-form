@@ -1,4 +1,4 @@
-<script lang="ts"> 
+<script lang="ts">
   import PopoverModal from '$demo/ui/modals/PopoverModal.svelte';
 </script>
 

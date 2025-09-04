@@ -10,6 +10,7 @@ import z, {
   type ZodStringFormat,
   type ZodArray,
   type ZodDefault,
+  type ZodPrefault,
   type ZodOptional,
   type ZodNullable
 } from 'zod';
@@ -50,6 +51,7 @@ type ZPrimitiveBase =
 export type ZPrimitive =
   | ZPrimitiveBase
   | ZodDefault<ZPrimitiveBase>
+  | ZodPrefault<ZPrimitiveBase>
   | ZodOptional<ZPrimitiveBase>
   | ZodNullable<ZPrimitiveBase>;
 

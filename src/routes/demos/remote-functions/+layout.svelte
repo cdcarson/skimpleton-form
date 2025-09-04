@@ -8,16 +8,14 @@
   <nav
     class=" flex h-14 items-center justify-between border-b bg-white/75 px-4 dark:bg-gray-900/75"
   >
-    <a href={resolve('/demos/remote-functions')} class="btn btn-ghost">
+    <a href={resolve('/demos/remote-functions')} class="button">
       <span class="icon-[bi--check-circle-fill]"></span>
       Demo App: Remote Functions
     </a>
     {#if data.user}
       <SignOutForm formId="remote-functions-sign-out-form" />
-      <button
-        type="submit"
-        form="remote-functions-sign-out-form"
-        class="btn btn-ghost">Sign Out</button
+      <button type="submit" form="remote-functions-sign-out-form" class="button"
+        >Sign Out</button
       >
     {/if}
   </nav>

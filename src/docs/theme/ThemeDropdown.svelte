@@ -17,7 +17,7 @@
 </button>
 <ul
   role="menu"
-  class="menu dropdown dropdown-end w-36 translate-y-2 rounded-box bg-base-100 shadow-lg"
+  class="menu dropdown dropdown-end rounded-box bg-base-100 w-36 translate-y-2 shadow-lg"
   popover
   id="popover-1"
   style="position-anchor:--anchor-1"

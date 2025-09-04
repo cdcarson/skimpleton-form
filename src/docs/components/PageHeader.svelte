@@ -21,7 +21,7 @@
       >
         {#each breadcrumbs as crumb, i (crumb)}
           <li class="flex items-center">
-            {#if crumb.href}
+            {#if crumb.href as string}
               <a
                 href={crumb.href}
                 class="transition-colors hover:text-gray-900 dark:hover:text-gray-100"

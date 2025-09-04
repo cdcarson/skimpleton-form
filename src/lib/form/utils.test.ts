@@ -45,203 +45,908 @@ describe('getFormDataArrayLength', () => {
 });
 
 describe('readFormData', () => {
-  it('reads primitive fields', () => {
+  it('correctly reads boolean values', () => {
     const schema = z.object({
-      name: z.string(),
-      age: z.number(),
-      active: z.boolean()
-    }) satisfies ZFormObject;
-
-    const formData = new FormData();
-    formData.append('name', 'John');
-    formData.append('age', '25');
-    formData.append('active', 'on');
-
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      name: 'John',
-      age: 25,
-      active: true
+      remember: z.boolean()
     });
+    const formData = new FormData();
+    formData.append('remember', 'on');
+    let data = readFormData(schema, formData);
+    expect(data.remember).toBe(true);
+    formData.delete('remember');
+    data = readFormData(schema, formData);
+    expect(data.remember).toBe(false);
+  });
+  it('correctly reads boolean values with a default value', () => {
+    const schema = z.object({
+      remember: z.boolean().default(true)
+    });
+    const formData = new FormData();
+    formData.append('remember', 'on');
+    let data = readFormData(schema, formData);
+    expect(data.remember).toBe(true);
+    formData.delete('remember');
+    data = readFormData(schema, formData);
+    expect(data.remember).toBe(false);
+  });
+  it('correctly reads boolean values with a prefault value', () => {
+    const schema = z.object({
+      remember: z.boolean().prefault(true)
+    });
+    const formData = new FormData();
+    formData.append('remember', 'on');
+    let data = readFormData(schema, formData);
+    expect(data.remember).toBe(true);
+    formData.delete('remember');
+    data = readFormData(schema, formData);
+    expect(data.remember).toBe(false);
+  });
+  it('correctly reads boolean values with nullable', () => {
+    const schema = z.object({
+      remember: z.boolean().nullable()
+    });
+    const formData = new FormData();
+    formData.append('remember', 'on');
+    let data = readFormData(schema, formData);
+    expect(data.remember).toBe(true);
+    formData.delete('remember');
+    data = readFormData(schema, formData);
+    expect(data.remember).toBe(false);
+  });
+  it('correctly reads boolean values with optional', () => {
+    const schema = z.object({
+      remember: z.boolean().optional()
+    });
+    const formData = new FormData();
+    formData.append('remember', 'on');
+    let data = readFormData(schema, formData);
+    expect(data.remember).toBe(true);
+    formData.delete('remember');
+    data = readFormData(schema, formData);
+    expect(data.remember).toBe(false);
+  });
+  it('correctly reads boolean values with refinement', () => {
+    const schema = z.object({
+      remember: z
+        .boolean()
+        .refine((val) => val, { message: 'Remember must be true' })
+    });
+    const formData = new FormData();
+    formData.append('remember', 'on');
+    let data = readFormData(schema, formData);
+    expect(data.remember).toBe(true);
+    formData.delete('remember');
+    data = readFormData(schema, formData);
+    expect(data.remember).toBe(false);
+  });
+  it('correctly reads arrays of boolean values', () => {
+    const schema = z.object({
+      flags: z.array(z.boolean())
+    });
+    const formData = new FormData();
+    formData.append('flags.0', 'on');
+    formData.append('flags.1', 'on');
+    const data = readFormData(schema, formData);
+    expect(data.flags).toEqual([true, true]);
   });
 
-  it('reads nested objects', () => {
+  it('correctly reads file values', () => {
     const schema = z.object({
-      profile: z.object({
-        firstName: z.string(),
-        lastName: z.string(),
-        age: z.number()
-      })
-    }) satisfies ZFormObject;
-
-    const formData = new FormData();
-    formData.append('profile.firstName', 'Jane');
-    formData.append('profile.lastName', 'Doe');
-    formData.append('profile.age', '30');
-
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      profile: {
-        firstName: 'Jane',
-        lastName: 'Doe',
-        age: 30
-      }
+      file: z.file()
     });
+    const formData = new FormData();
+    formData.append('file', new File(['ggh'], 'test.txt'));
+    let data = readFormData(schema, formData);
+    expect(data.file).toBeInstanceOf(File);
+    formData.delete('file');
+    data = readFormData(schema, formData);
+    expect(data.file).toBe(undefined);
   });
 
-  it('reads deeply nested objects (3 levels)', () => {
-    const schema = z.object({
-      settings: z.object({
-        notifications: z.object({
-          email: z.boolean(),
-          sms: z.boolean()
-        })
-      })
-    }) satisfies ZFormObject;
-
-    const formData = new FormData();
-    formData.append('settings.notifications.email', 'on');
-    formData.append('settings.notifications.sms', '');
-
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      settings: {
-        notifications: {
-          email: true,
-          sms: false
-        }
-      }
-    });
-  });
-
-  it('reads arrays', () => {
-    const schema = z.object({
-      tags: z.array(z.string()),
-      scores: z.array(z.number())
-    }) satisfies ZFormObject;
-
-    const formData = new FormData();
-    formData.append('tags.0', 'javascript');
-    formData.append('tags.1', 'typescript');
-    formData.append('scores.0', '95');
-    formData.append('scores.1', '87');
-
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      tags: ['javascript', 'typescript'],
-      scores: [95, 87]
-    });
-  });
-
-  it('reads nested arrays', () => {
-    const schema = z.object({
-      profile: z.object({
-        hobbies: z.array(z.string())
-      })
-    }) satisfies ZFormObject;
-
-    const formData = new FormData();
-    formData.append('profile.hobbies.0', 'reading');
-    formData.append('profile.hobbies.1', 'gaming');
-
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      profile: {
-        hobbies: ['reading', 'gaming']
-      }
-    });
-  });
-
-  it('handles missing fields', () => {
-    const schema = z.object({
-      required: z.string(),
-      optional: z.string()
-    }) satisfies ZFormObject;
-
-    const formData = new FormData();
-    formData.append('required', 'present');
-    // 'optional' is not in FormData
-
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      required: 'present',
-      optional: undefined
-    });
-  });
-
-  it('handles empty strings', () => {
+  // String tests
+  it('correctly reads string values', () => {
     const schema = z.object({
       name: z.string()
-    }) satisfies ZFormObject;
-
-    const formData = new FormData();
-    formData.append('name', '');
-
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      name: ''
     });
+    const formData = new FormData();
+    formData.append('name', 'John Doe');
+    let data = readFormData(schema, formData);
+    expect(data.name).toBe('John Doe');
+
+    formData.set('name', '');
+    data = readFormData(schema, formData);
+    expect(data.name).toBe('');
   });
 
-  it('handles file inputs', () => {
+  it('correctly reads string values with default value', () => {
     const schema = z.object({
-      avatar: z.file()
-    }) satisfies ZFormObject;
-
+      name: z.string().default('Anonymous')
+    });
     const formData = new FormData();
-    const file = new File(['content'], 'avatar.jpg', { type: 'image/jpeg' });
-    formData.append('avatar', file);
+    formData.append('name', 'John');
+    let data = readFormData(schema, formData);
+    expect(data.name).toBe('John');
 
-    const result = readFormData(schema, formData);
-    expect(result.avatar).toBeInstanceOf(File);
-    expect((result.avatar as File).name).toBe('avatar.jpg');
+    formData.delete('name');
+    data = readFormData(schema, formData);
+    expect(data.name).toBe(undefined);
   });
 
-  it('handles refined schemas', () => {
+  it('correctly reads string values with prefault value', () => {
     const schema = z.object({
-      email: z
-        .string()
-        .email()
-        .refine((val) => val.includes('@example.com')),
-      age: z.number().min(18)
-    }) satisfies ZFormObject;
-
+      name: z.string().prefault('Guest')
+    });
     const formData = new FormData();
-    formData.append('email', 'user@example.com');
+    formData.append('name', 'Alice');
+    let data = readFormData(schema, formData);
+    expect(data.name).toBe('Alice');
+
+    formData.delete('name');
+    data = readFormData(schema, formData);
+    expect(data.name).toBe(undefined);
+  });
+
+  it('correctly reads string values with nullable', () => {
+    const schema = z.object({
+      name: z.string().nullable()
+    });
+    const formData = new FormData();
+    formData.append('name', 'Bob');
+    let data = readFormData(schema, formData);
+    expect(data.name).toBe('Bob');
+
+    formData.set('name', '');
+    data = readFormData(schema, formData);
+    expect(data.name).toBe('');
+  });
+
+  it('correctly reads string values with optional', () => {
+    const schema = z.object({
+      name: z.string().optional()
+    });
+    const formData = new FormData();
+    formData.append('name', 'Charlie');
+    let data = readFormData(schema, formData);
+    expect(data.name).toBe('Charlie');
+
+    formData.delete('name');
+    data = readFormData(schema, formData);
+    expect(data.name).toBe(undefined);
+  });
+
+  it('correctly reads string values with refinement', () => {
+    const schema = z.object({
+      name: z.string().refine((val) => val.length > 2, {
+        message: 'Name must be longer than 2 characters'
+      })
+    });
+    const formData = new FormData();
+    formData.append('name', 'David');
+    let data = readFormData(schema, formData);
+    expect(data.name).toBe('David');
+
+    formData.set('name', 'Ed');
+    data = readFormData(schema, formData);
+    expect(data.name).toBe('Ed');
+  });
+
+  it('correctly reads arrays of string values', () => {
+    const schema = z.object({
+      tags: z.array(z.string())
+    });
+    const formData = new FormData();
+    formData.append('tags.0', 'tag1');
+    formData.append('tags.1', 'tag2');
+    formData.append('tags.2', 'tag3');
+    const data = readFormData(schema, formData);
+    expect(data.tags).toEqual(['tag1', 'tag2', 'tag3']);
+  });
+
+  // String format tests (email, url, uuid, etc.)
+  it('correctly reads email values', () => {
+    const schema = z.object({
+      email: z.email()
+    });
+    const formData = new FormData();
+    formData.append('email', 'test@example.com');
+    let data = readFormData(schema, formData);
+    expect(data.email).toBe('test@example.com');
+
+    formData.set('email', 'invalid-email');
+    data = readFormData(schema, formData);
+    expect(data.email).toBe('invalid-email');
+  });
+
+  it('correctly reads url values', () => {
+    const schema = z.object({
+      website: z.url()
+    });
+    const formData = new FormData();
+    formData.append('website', 'https://example.com');
+    let data = readFormData(schema, formData);
+    expect(data.website).toBe('https://example.com');
+
+    formData.set('website', 'not-a-url');
+    data = readFormData(schema, formData);
+    expect(data.website).toBe('not-a-url');
+  });
+
+  it('correctly reads uuid values', () => {
+    const schema = z.object({
+      id: z.uuid()
+    });
+    const formData = new FormData();
+    formData.append('id', '550e8400-e29b-41d4-a716-446655440000');
+    let data = readFormData(schema, formData);
+    expect(data.id).toBe('550e8400-e29b-41d4-a716-446655440000');
+
+    formData.set('id', 'not-a-uuid');
+    data = readFormData(schema, formData);
+    expect(data.id).toBe('not-a-uuid');
+  });
+
+  it('correctly reads email values with default', () => {
+    const schema = z.object({
+      email: z.email().default('default@example.com')
+    });
+    const formData = new FormData();
+    formData.append('email', 'user@test.com');
+    let data = readFormData(schema, formData);
+    expect(data.email).toBe('user@test.com');
+
+    formData.delete('email');
+    data = readFormData(schema, formData);
+    expect(data.email).toBe(undefined);
+  });
+
+  it('correctly reads email values with prefault', () => {
+    const schema = z.object({
+      email: z.email().prefault('prefault@example.com')
+    });
+    const formData = new FormData();
+    formData.append('email', 'user@test.com');
+    let data = readFormData(schema, formData);
+    expect(data.email).toBe('user@test.com');
+
+    formData.delete('email');
+    data = readFormData(schema, formData);
+    expect(data.email).toBe(undefined);
+  });
+
+  it('correctly reads email values with nullable', () => {
+    const schema = z.object({
+      email: z.email().nullable()
+    });
+    const formData = new FormData();
+    formData.append('email', 'user@test.com');
+    let data = readFormData(schema, formData);
+    expect(data.email).toBe('user@test.com');
+
+    formData.set('email', '');
+    data = readFormData(schema, formData);
+    expect(data.email).toBe('');
+  });
+
+  it('correctly reads email values with optional', () => {
+    const schema = z.object({
+      email: z.email().optional()
+    });
+    const formData = new FormData();
+    formData.append('email', 'user@test.com');
+    let data = readFormData(schema, formData);
+    expect(data.email).toBe('user@test.com');
+
+    formData.delete('email');
+    data = readFormData(schema, formData);
+    expect(data.email).toBe(undefined);
+  });
+
+  it('correctly reads email values with refinement', () => {
+    const schema = z.object({
+      email: z.email().refine((val) => val.endsWith('@company.com'), {
+        message: 'Must be company email'
+      })
+    });
+    const formData = new FormData();
+    formData.append('email', 'user@company.com');
+    let data = readFormData(schema, formData);
+    expect(data.email).toBe('user@company.com');
+
+    formData.set('email', 'user@other.com');
+    data = readFormData(schema, formData);
+    expect(data.email).toBe('user@other.com');
+  });
+
+  it('correctly reads arrays of email values', () => {
+    const schema = z.object({
+      emails: z.array(z.email())
+    });
+    const formData = new FormData();
+    formData.append('emails.0', 'user1@test.com');
+    formData.append('emails.1', 'user2@test.com');
+    formData.append('emails.2', 'user3@test.com');
+    const data = readFormData(schema, formData);
+    expect(data.emails).toEqual([
+      'user1@test.com',
+      'user2@test.com',
+      'user3@test.com'
+    ]);
+  });
+
+  it('correctly reads url values with modifiers', () => {
+    const schema = z.object({
+      website: z.url().optional(),
+      backup: z.url().nullable(),
+      default: z.url().default('https://default.com')
+    });
+    const formData = new FormData();
+    formData.append('website', 'https://test.com');
+    formData.append('backup', 'https://backup.com');
+    formData.append('default', 'https://custom.com');
+    const data = readFormData(schema, formData);
+    expect(data.website).toBe('https://test.com');
+    expect(data.backup).toBe('https://backup.com');
+    expect(data.default).toBe('https://custom.com');
+  });
+
+  it('correctly reads arrays of url values', () => {
+    const schema = z.object({
+      links: z.array(z.url())
+    });
+    const formData = new FormData();
+    formData.append('links.0', 'https://site1.com');
+    formData.append('links.1', 'https://site2.com');
+    const data = readFormData(schema, formData);
+    expect(data.links).toEqual(['https://site1.com', 'https://site2.com']);
+  });
+
+  it('correctly reads uuid values with modifiers', () => {
+    const schema = z.object({
+      id: z.uuid().optional(),
+      sessionId: z.uuid().nullable(),
+      defaultId: z.uuid().default('550e8400-e29b-41d4-a716-446655440000')
+    });
+    const formData = new FormData();
+    formData.append('id', '123e4567-e89b-12d3-a456-426614174000');
+    formData.append('sessionId', '987e6543-e89b-12d3-a456-426614174000');
+    formData.append('defaultId', '456e7890-e89b-12d3-a456-426614174000');
+    const data = readFormData(schema, formData);
+    expect(data.id).toBe('123e4567-e89b-12d3-a456-426614174000');
+    expect(data.sessionId).toBe('987e6543-e89b-12d3-a456-426614174000');
+    expect(data.defaultId).toBe('456e7890-e89b-12d3-a456-426614174000');
+  });
+
+  it('correctly reads arrays of uuid values', () => {
+    const schema = z.object({
+      ids: z.array(z.uuid())
+    });
+    const formData = new FormData();
+    formData.append('ids.0', '123e4567-e89b-12d3-a456-426614174000');
+    formData.append('ids.1', '987e6543-e89b-12d3-a456-426614174000');
+    const data = readFormData(schema, formData);
+    expect(data.ids).toEqual([
+      '123e4567-e89b-12d3-a456-426614174000',
+      '987e6543-e89b-12d3-a456-426614174000'
+    ]);
+  });
+
+  // Number tests
+  it('correctly reads number values', () => {
+    const schema = z.object({
+      age: z.number()
+    });
+    const formData = new FormData();
     formData.append('age', '25');
+    let data = readFormData(schema, formData);
+    expect(data.age).toBe(25);
 
-    const result = readFormData(schema, formData);
-    expect(result).toEqual({
-      email: 'user@example.com',
-      age: 25
-    });
+    formData.set('age', '0');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(0);
+
+    formData.set('age', '-10');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(-10);
+
+    formData.set('age', '3.14');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(3.14);
   });
 
-  it('handles date fields', () => {
+  it('correctly reads number values with default value', () => {
     const schema = z.object({
-      birthDate: z.date()
-    }) satisfies ZFormObject;
-
+      age: z.number().default(18)
+    });
     const formData = new FormData();
-    formData.append('birthDate', '2000-01-01');
+    formData.append('age', '30');
+    let data = readFormData(schema, formData);
+    expect(data.age).toBe(30);
 
-    const result = readFormData(schema, formData);
-    expect(result.birthDate).toBeInstanceOf(Date);
-    // Check the date was parsed correctly
-    const date = result.birthDate as Date;
-    expect(date.toISOString().startsWith('2000-01-01')).toBe(true);
+    formData.delete('age');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(undefined);
   });
 
-  it('handles bigint fields', () => {
+  it('correctly reads number values with prefault value', () => {
+    const schema = z.object({
+      age: z.number().prefault(21)
+    });
+    const formData = new FormData();
+    formData.append('age', '35');
+    let data = readFormData(schema, formData);
+    expect(data.age).toBe(35);
+
+    formData.delete('age');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(undefined);
+  });
+
+  it('correctly reads number values with nullable', () => {
+    const schema = z.object({
+      age: z.number().nullable()
+    });
+    const formData = new FormData();
+    formData.append('age', '40');
+    let data = readFormData(schema, formData);
+    expect(data.age).toBe(40);
+
+    formData.delete('age');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(undefined);
+  });
+
+  it('correctly reads number values with optional', () => {
+    const schema = z.object({
+      age: z.number().optional()
+    });
+    const formData = new FormData();
+    formData.append('age', '45');
+    let data = readFormData(schema, formData);
+    expect(data.age).toBe(45);
+
+    formData.delete('age');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(undefined);
+  });
+
+  it('correctly reads number values with refinement', () => {
+    const schema = z.object({
+      age: z
+        .number()
+        .refine((val) => val >= 0, { message: 'Age must be positive' })
+    });
+    const formData = new FormData();
+    formData.append('age', '50');
+    let data = readFormData(schema, formData);
+    expect(data.age).toBe(50);
+
+    formData.set('age', '-5');
+    data = readFormData(schema, formData);
+    expect(data.age).toBe(-5);
+  });
+
+  it('correctly reads arrays of number values', () => {
+    const schema = z.object({
+      scores: z.array(z.number())
+    });
+    const formData = new FormData();
+    formData.append('scores.0', '85');
+    formData.append('scores.1', '92');
+    formData.append('scores.2', '78');
+    const data = readFormData(schema, formData);
+    expect(data.scores).toEqual([85, 92, 78]);
+  });
+
+  // Date tests
+  it('correctly reads date values', () => {
+    const schema = z.object({
+      birthday: z.date()
+    });
+    const formData = new FormData();
+    formData.append('birthday', '2024-01-15');
+    let data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2024-01-15'));
+
+    formData.set('birthday', '2023-12-31T23:59:59');
+    data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2023-12-31T23:59:59'));
+  });
+
+  it('correctly reads date values with default value', () => {
+    const defaultDate = new Date('2024-01-01');
+    const schema = z.object({
+      birthday: z.date().default(defaultDate)
+    });
+    const formData = new FormData();
+    formData.append('birthday', '2024-06-15');
+    let data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2024-06-15'));
+
+    formData.delete('birthday');
+    data = readFormData(schema, formData);
+    expect(data.birthday).toBe(undefined);
+  });
+
+  it('correctly reads date values with prefault value', () => {
+    const prefaultDate = new Date('2024-02-01');
+    const schema = z.object({
+      birthday: z.date().prefault(prefaultDate)
+    });
+    const formData = new FormData();
+    formData.append('birthday', '2024-07-15');
+    let data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2024-07-15'));
+
+    formData.delete('birthday');
+    data = readFormData(schema, formData);
+    expect(data.birthday).toBe(undefined);
+  });
+
+  it('correctly reads date values with nullable', () => {
+    const schema = z.object({
+      birthday: z.date().nullable()
+    });
+    const formData = new FormData();
+    formData.append('birthday', '2024-08-15');
+    let data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2024-08-15'));
+
+    formData.delete('birthday');
+    data = readFormData(schema, formData);
+    expect(data.birthday).toBe(undefined);
+  });
+
+  it('correctly reads date values with optional', () => {
+    const schema = z.object({
+      birthday: z.date().optional()
+    });
+    const formData = new FormData();
+    formData.append('birthday', '2024-09-15');
+    let data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2024-09-15'));
+
+    formData.delete('birthday');
+    data = readFormData(schema, formData);
+    expect(data.birthday).toBe(undefined);
+  });
+
+  it('correctly reads date values with refinement', () => {
+    const schema = z.object({
+      birthday: z.date().refine((val) => val < new Date(), {
+        message: 'Birthday must be in the past'
+      })
+    });
+    const formData = new FormData();
+    formData.append('birthday', '2020-01-01');
+    let data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2020-01-01'));
+
+    formData.set('birthday', '2025-01-01');
+    data = readFormData(schema, formData);
+    expect(data.birthday).toEqual(new Date('2025-01-01'));
+  });
+
+  it('correctly reads arrays of date values', () => {
+    const schema = z.object({
+      appointments: z.array(z.date())
+    });
+    const formData = new FormData();
+    formData.append('appointments.0', '2024-01-01');
+    formData.append('appointments.1', '2024-02-01');
+    formData.append('appointments.2', '2024-03-01');
+    const data = readFormData(schema, formData);
+    expect(data.appointments).toEqual([
+      new Date('2024-01-01'),
+      new Date('2024-02-01'),
+      new Date('2024-03-01')
+    ]);
+  });
+
+  // BigInt tests
+  it('correctly reads bigint values', () => {
     const schema = z.object({
       largeNumber: z.bigint()
-    }) satisfies ZFormObject;
-
+    });
     const formData = new FormData();
-    formData.append('largeNumber', '9007199254740993');
+    formData.append('largeNumber', '9007199254740991');
+    let data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('9007199254740991'));
 
-    const result = readFormData(schema, formData);
-    expect(result.largeNumber).toBe(BigInt('9007199254740993'));
+    formData.set('largeNumber', '-9007199254740991');
+    data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('-9007199254740991'));
+
+    formData.set('largeNumber', '0');
+    data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('0'));
+  });
+
+  it('correctly reads bigint values with default value', () => {
+    const schema = z.object({
+      largeNumber: z.bigint().default(BigInt(100))
+    });
+    const formData = new FormData();
+    formData.append('largeNumber', '999999999999');
+    let data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('999999999999'));
+
+    formData.delete('largeNumber');
+    data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(undefined);
+  });
+
+  it('correctly reads bigint values with prefault value', () => {
+    const schema = z.object({
+      largeNumber: z.bigint().prefault(BigInt(200))
+    });
+    const formData = new FormData();
+    formData.append('largeNumber', '888888888888');
+    let data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('888888888888'));
+
+    formData.delete('largeNumber');
+    data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(undefined);
+  });
+
+  it('correctly reads bigint values with nullable', () => {
+    const schema = z.object({
+      largeNumber: z.bigint().nullable()
+    });
+    const formData = new FormData();
+    formData.append('largeNumber', '777777777777');
+    let data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('777777777777'));
+
+    formData.delete('largeNumber');
+    data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(undefined);
+  });
+
+  it('correctly reads bigint values with optional', () => {
+    const schema = z.object({
+      largeNumber: z.bigint().optional()
+    });
+    const formData = new FormData();
+    formData.append('largeNumber', '666666666666');
+    let data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('666666666666'));
+
+    formData.delete('largeNumber');
+    data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(undefined);
+  });
+
+  it('correctly reads bigint values with refinement', () => {
+    const schema = z.object({
+      largeNumber: z
+        .bigint()
+        .refine((val) => val > BigInt(0), { message: 'Must be positive' })
+    });
+    const formData = new FormData();
+    formData.append('largeNumber', '555555555555');
+    let data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('555555555555'));
+
+    formData.set('largeNumber', '-100');
+    data = readFormData(schema, formData);
+    expect(data.largeNumber).toBe(BigInt('-100'));
+  });
+
+  it('correctly reads arrays of bigint values', () => {
+    const schema = z.object({
+      largeNumbers: z.array(z.bigint())
+    });
+    const formData = new FormData();
+    formData.append('largeNumbers.0', '111111111111');
+    formData.append('largeNumbers.1', '222222222222');
+    formData.append('largeNumbers.2', '333333333333');
+    const data = readFormData(schema, formData);
+    expect(data.largeNumbers).toEqual([
+      BigInt('111111111111'),
+      BigInt('222222222222'),
+      BigInt('333333333333')
+    ]);
+  });
+
+  // Enum tests
+  it('correctly reads enum values', () => {
+    const schema = z.object({
+      role: z.enum(['admin', 'user', 'guest'])
+    });
+    const formData = new FormData();
+    formData.append('role', 'admin');
+    let data = readFormData(schema, formData);
+    expect(data.role).toBe('admin');
+
+    formData.set('role', 'user');
+    data = readFormData(schema, formData);
+    expect(data.role).toBe('user');
+
+    formData.set('role', 'guest');
+    data = readFormData(schema, formData);
+    expect(data.role).toBe('guest');
+  });
+
+  it('correctly reads enum values with default value', () => {
+    const schema = z.object({
+      role: z.enum(['admin', 'user', 'guest']).default('guest')
+    });
+    const formData = new FormData();
+    formData.append('role', 'admin');
+    let data = readFormData(schema, formData);
+    expect(data.role).toBe('admin');
+
+    formData.delete('role');
+    data = readFormData(schema, formData);
+    expect(data.role).toBe(undefined);
+  });
+
+  it('correctly reads enum values with prefault value', () => {
+    const schema = z.object({
+      role: z.enum(['admin', 'user', 'guest']).prefault('user')
+    });
+    const formData = new FormData();
+    formData.append('role', 'admin');
+    let data = readFormData(schema, formData);
+    expect(data.role).toBe('admin');
+
+    formData.delete('role');
+    data = readFormData(schema, formData);
+    expect(data.role).toBe(undefined);
+  });
+
+  it('correctly reads enum values with nullable', () => {
+    const schema = z.object({
+      role: z.enum(['admin', 'user', 'guest']).nullable()
+    });
+    const formData = new FormData();
+    formData.append('role', 'admin');
+    let data = readFormData(schema, formData);
+    expect(data.role).toBe('admin');
+
+    formData.set('role', '');
+    data = readFormData(schema, formData);
+    expect(data.role).toBe('');
+  });
+
+  it('correctly reads enum values with optional', () => {
+    const schema = z.object({
+      role: z.enum(['admin', 'user', 'guest']).optional()
+    });
+    const formData = new FormData();
+    formData.append('role', 'user');
+    let data = readFormData(schema, formData);
+    expect(data.role).toBe('user');
+
+    formData.delete('role');
+    data = readFormData(schema, formData);
+    expect(data.role).toBe(undefined);
+  });
+
+  it('correctly reads enum values with refinement', () => {
+    const schema = z.object({
+      role: z
+        .enum(['admin', 'user', 'guest'])
+        .refine((val) => val !== 'guest', { message: 'Guest role not allowed' })
+    });
+    const formData = new FormData();
+    formData.append('role', 'admin');
+    let data = readFormData(schema, formData);
+    expect(data.role).toBe('admin');
+
+    formData.set('role', 'guest');
+    data = readFormData(schema, formData);
+    expect(data.role).toBe('guest');
+  });
+
+  it('correctly reads arrays of enum values', () => {
+    const schema = z.object({
+      permissions: z.array(z.enum(['read', 'write', 'delete']))
+    });
+    const formData = new FormData();
+    formData.append('permissions.0', 'read');
+    formData.append('permissions.1', 'write');
+    formData.append('permissions.2', 'delete');
+    const data = readFormData(schema, formData);
+    expect(data.permissions).toEqual(['read', 'write', 'delete']);
+  });
+
+  // Expanded File tests
+  it('correctly reads file values with default value', () => {
+    const defaultFile = new File(['default'], 'default.txt');
+    const schema = z.object({
+      document: z.file().default(defaultFile)
+    });
+    const formData = new FormData();
+    const testFile = new File(['test'], 'test.pdf');
+    formData.append('document', testFile);
+    let data = readFormData(schema, formData);
+    expect(data.document).toBe(testFile);
+    expect(data.document?.name).toBe('test.pdf');
+
+    formData.delete('document');
+    data = readFormData(schema, formData);
+    expect(data.document).toBe(undefined);
+  });
+
+  it('correctly reads file values with prefault value', () => {
+    const prefaultFile = new File(['prefault'], 'prefault.txt');
+    const schema = z.object({
+      document: z.file().prefault(prefaultFile)
+    });
+    const formData = new FormData();
+    const testFile = new File(['test'], 'test.pdf');
+    formData.append('document', testFile);
+    let data = readFormData(schema, formData);
+    expect(data.document).toBe(testFile);
+
+    formData.delete('document');
+    data = readFormData(schema, formData);
+    expect(data.document).toBe(undefined);
+  });
+
+  it('correctly reads file values with nullable', () => {
+    const schema = z.object({
+      document: z.file().nullable()
+    });
+    const formData = new FormData();
+    const testFile = new File(['test'], 'test.pdf');
+    formData.append('document', testFile);
+    let data = readFormData(schema, formData);
+    expect(data.document).toBe(testFile);
+
+    formData.delete('document');
+    data = readFormData(schema, formData);
+    expect(data.document).toBe(undefined);
+  });
+
+  it('correctly reads file values with optional', () => {
+    const schema = z.object({
+      document: z.file().optional()
+    });
+    const formData = new FormData();
+    const testFile = new File(['test'], 'test.pdf');
+    formData.append('document', testFile);
+    let data = readFormData(schema, formData);
+    expect(data.document).toBe(testFile);
+
+    formData.delete('document');
+    data = readFormData(schema, formData);
+    expect(data.document).toBe(undefined);
+  });
+
+  it('correctly reads file values with refinement', () => {
+    const schema = z.object({
+      document: z
+        .file()
+        .refine((file) => file.size > 0, { message: 'File cannot be empty' })
+    });
+    const formData = new FormData();
+    const testFile = new File(['content'], 'test.pdf');
+    formData.append('document', testFile);
+    let data = readFormData(schema, formData);
+    expect(data.document).toBe(testFile);
+
+    const emptyFile = new File([], 'empty.pdf');
+    formData.set('document', emptyFile);
+    data = readFormData(schema, formData);
+    expect(data.document).toBe(emptyFile);
+  });
+
+  it('correctly reads arrays of file values', () => {
+    const schema = z.object({
+      attachments: z.array(z.file())
+    });
+    const formData = new FormData();
+    const file1 = new File(['content1'], 'file1.txt');
+    const file2 = new File(['content2'], 'file2.txt');
+    const file3 = new File(['content3'], 'file3.txt');
+    formData.append('attachments.0', file1);
+    formData.append('attachments.1', file2);
+    formData.append('attachments.2', file3);
+    const data = readFormData(schema, formData);
+    expect(data.attachments).toEqual([file1, file2, file3]);
   });
 });
 

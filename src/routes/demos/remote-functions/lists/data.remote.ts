@@ -1,6 +1,5 @@
 import { form, getRequestEvent } from '$app/server';
 import { resolve } from '$app/paths';
-import { z } from 'zod';
 import { RemoteFunctionHandler } from '$lib/form/server.js';
 import { guardRegisteredUser } from '$demo/authentication/authentication.server.js';
 import { getDb } from '$demo/db/connection/db.server.js';

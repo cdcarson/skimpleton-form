@@ -38,6 +38,6 @@
 </div>
 
 <AppMessage
-  viewportPosition="top-right"
+  viewportPosition="bottom"
   flashMessage={data.flashMessage ?? undefined}
 />
