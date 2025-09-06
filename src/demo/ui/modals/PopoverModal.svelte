@@ -6,8 +6,10 @@
     title: string;
     children: Snippet;
     footer?: Snippet;
+    zIndex?: number;
+    backdropZIndex?: number;
   };
-  let { id, children, title, footer }: Props = $props();
+  let { id, children, title, footer, zIndex, backdropZIndex }: Props = $props();
 
   let dialog: HTMLDialogElement | undefined = $state();
 
@@ -22,6 +24,8 @@
   popover
   closedby="any"
   class="inset-0 right-0 left-auto m-0 flex h-full w-80 max-w-full translate-x-full flex-col bg-white transition-all transition-discrete duration-300 backdrop:bg-black/0 backdrop:transition-all backdrop:transition-discrete backdrop:duration-300 open:translate-x-0 open:backdrop:bg-black/50 starting:open:translate-x-full starting:open:backdrop:bg-black/0"
+  style:z-index={zIndex}
+  style:--backdrop-z-index={backdropZIndex}
 >
   <header class="flex h-14 shrink-0 grow-0 items-center justify-between px-4">
     <h2 id={'modal-header-' + id}>
@@ -48,4 +52,7 @@
 </dialog>
 
 <style>
+  dialog::backdrop {
+    z-index: var(--backdrop-z-index);
+  }
 </style>
