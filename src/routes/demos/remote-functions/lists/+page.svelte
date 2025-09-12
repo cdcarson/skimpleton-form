@@ -19,8 +19,9 @@
   {:else}
     <div class="grid gap-4 md:grid-cols-2 lg:grid-cols-3">
       {#each data.todoLists as list (list.id)}
-        <div
-          class="rounded-lg border border-gray-200 bg-white p-6 shadow-md transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-900"
+        <a
+          href="/demos/remote-functions/lists/{list.id}"
+          class="block rounded-lg border border-gray-200 bg-white p-6 shadow-md transition-shadow hover:shadow-lg dark:border-gray-700 dark:bg-gray-900"
         >
           <div>
             <h2 class="mb-2 text-lg font-semibold">{list.name}</h2>
@@ -31,7 +32,7 @@
               Created: {new Date(list.createdAt).toLocaleDateString()}
             </div>
           </div>
-        </div>
+        </a>
       {/each}
     </div>
   {/if}

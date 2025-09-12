@@ -9,7 +9,14 @@
     zIndex?: number;
     backdropZIndex?: number;
   };
-  let { id, children, title, footer, zIndex, backdropZIndex }: Props = $props();
+  let {
+    id,
+    children,
+    title,
+    footer,
+    zIndex = 1,
+    backdropZIndex = 0
+  }: Props = $props();
 
   let dialog: HTMLDialogElement | undefined = $state();
 

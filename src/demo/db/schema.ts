@@ -99,8 +99,30 @@ export const todoList = pgTable('todo_list', {
     .notNull()
     .$onUpdate(() => new Date())
 });
-export const todoListRelations = relations(todoList, ({ one }) => ({
-  user: one(user, { fields: [todoList.userId], references: [user.id] })
+export const todoListRelations = relations(todoList, ({ one, many }) => ({
+  user: one(user, { fields: [todoList.userId], references: [user.id] }),
+  items: many(todoItem)
+}));
+
+export const todoItem = pgTable('todo_item', {
+  id: bigserial('id', { mode: 'bigint' }).primaryKey(),
+  todoListId: bigint('todo_list_id', { mode: 'bigint' })
+    .notNull()
+    .references(() => todoList.id),
+  name: varchar('name').notNull(),
+  description: text('description'),
+  completed: boolean('completed').notNull().default(false),
+  createdAt: timestamp('created_at').defaultNow().notNull(),
+  updatedAt: timestamp('updated_at')
+    .defaultNow()
+    .notNull()
+    .$onUpdate(() => new Date())
+});
+export const todoItemRelations = relations(todoItem, ({ one }) => ({
+  todoList: one(todoList, {
+    fields: [todoItem.todoListId],
+    references: [todoList.id]
+  })
 }));
 
 export type User = typeof user.$inferSelect;
@@ -108,3 +130,4 @@ export type UserAccount = typeof userAccount.$inferSelect;
 export type UserProfile = typeof userProfile.$inferSelect;
 export type UserSession = typeof userSession.$inferSelect;
 export type TodoList = typeof todoList.$inferSelect;
+export type TodoItem = typeof todoItem.$inferSelect;

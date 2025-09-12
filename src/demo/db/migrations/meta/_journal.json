@@ -29,6 +29,13 @@
       "when": 1756759641826,
       "tag": "0003_volatile_stark_industries",
       "breakpoints": true
+    },
+    {
+      "idx": 4,
+      "version": "7",
+      "when": 1757173415067,
+      "tag": "0004_regular_blindfold",
+      "breakpoints": true
     }
   ]
 }
