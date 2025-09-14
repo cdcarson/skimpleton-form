@@ -187,7 +187,7 @@
     width: var(--width);
     padding: var(--padding);
     transform: translate(var(--translate-x), var(--translate-y));
-    z-index: var(--skimpleton-application-message-z-index, 1000);
+    z-index: 30000;
   }
 
   .message > .content {

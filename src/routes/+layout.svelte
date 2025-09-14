@@ -19,9 +19,7 @@
   <link rel="stylesheet" href={hljsThemeUrl} />
 </svelte:head>
 
-<div
-  class="min-h-screen bg-white text-gray-900 dark:bg-gray-900 dark:text-gray-100"
->
+<div class="min-h-screen">
   <!-- Theme dropdown in top right -->
   <nav
     class="fixed top-0 right-0 left-0 z-50 flex h-14 items-center justify-between bg-white/75 px-4 dark:bg-gray-900/75"

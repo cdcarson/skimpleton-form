@@ -31,7 +31,7 @@
   }
 
   .control {
-    @apply block min-h-[var(--ctl-min-height)] w-full appearance-none rounded-[var(--ctl-border-radius)] border-[length:var(--ctl-border-width)] border-gray-300 bg-white px-[var(--ctl-padding-inline)] py-[var(--ctl-padding-block)] leading-[var(--ctl-line-height)] text-gray-700 ring-blue-500/50 transition-all outline-none focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-33 dark:border-gray-500 dark:bg-black dark:text-gray-300 dark:disabled:opacity-50 [&.invalid]:border-red-500 [&.invalid]:ring-red-500/50;
+    @apply block min-h-[var(--ctl-min-height)] w-full max-w-full appearance-none rounded-[var(--ctl-border-radius)] border-[length:var(--ctl-border-width)] border-gray-300 bg-white px-[var(--ctl-padding-inline)] py-[var(--ctl-padding-block)] leading-[var(--ctl-line-height)] text-gray-700 ring-blue-500/50 transition-all outline-none focus-visible:ring-4 disabled:pointer-events-none disabled:opacity-33 dark:border-gray-500 dark:bg-black dark:text-gray-300 dark:disabled:opacity-50 [&.invalid]:border-red-500 [&.invalid]:ring-red-500/50;
   }
 
   .control:not(select):not(
@@ -110,6 +110,9 @@
 
   .button.button-dark {
     @apply border-transparent bg-gray-800 text-white hover:bg-gray-900 [&.active]:bg-black;
+  }
+  .button.button-ghost {
+    @apply border-transparent bg-transparent text-gray-700 hover:bg-gray-100 [&.active]:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-900 dark:active:bg-gray-800;
   }
 
   ul.control-group {
