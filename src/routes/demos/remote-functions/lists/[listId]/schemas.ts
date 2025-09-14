@@ -35,3 +35,14 @@ export const deleteTodoItemSchema = z.object({
   itemId: z.string().min(1, 'Item ID is required'),
   listId: z.string().min(1, 'List ID is required')
 });
+
+// Schema for updating a todo list
+export const updateTodoListSchema = z.object({
+  listId: z.string().min(1, 'List ID is required'),
+  name: z
+    .string({ error: 'Required.' })
+    .trim()
+    .min(1, 'Required.')
+    .max(255, 'Maximum 255 characters.'),
+  description: z.string().trim().optional()
+});

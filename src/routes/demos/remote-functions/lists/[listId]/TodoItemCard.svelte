@@ -101,7 +101,7 @@
           name={editForm.controlName('name')}
           bind:value={editForm.data.name}
           onblur={() => editForm.touch('name')}
-          class="input w-full"
+          class="control w-full"
           required
         />
         {#if editForm.shownErrors?.name}
@@ -112,7 +112,7 @@
           name={editForm.controlName('description')}
           bind:value={editForm.data.description}
           onblur={() => editForm.touch('description')}
-          class="input w-full"
+          class="control w-full"
           rows="2"
           placeholder="Description (optional)"
         ></textarea>
@@ -126,15 +126,11 @@
           <button
             type="submit"
             disabled={editForm.submitting}
-            class="button button-sm"
+            class="button button-sm button-primary"
           >
             {editForm.submitting ? 'Saving...' : 'Save'}
           </button>
-          <button
-            type="button"
-            onclick={cancelEdit}
-            class="button button-sm button-secondary"
-          >
+          <button type="button" onclick={cancelEdit} class="button button-sm">
             Cancel
           </button>
         </div>
@@ -188,7 +184,7 @@
         <button
           type="button"
           onclick={startEdit}
-          class="rounded p-1 text-gray-500 hover:bg-gray-100 hover:text-gray-700 dark:hover:bg-gray-800"
+          class="button button-xs"
           aria-label="Edit item"
         >
           <span class="icon-[bi--pencil]"></span>
@@ -201,7 +197,7 @@
           <button
             type="submit"
             disabled={deleteForm.submitting}
-            class="rounded p-1 text-red-500 hover:bg-red-50 hover:text-red-700 dark:hover:bg-red-900/20"
+            class="button button-xs button-destructive"
             aria-label="Delete item"
           >
             <span class="icon-[bi--trash]"></span>

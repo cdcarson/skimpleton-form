@@ -8,7 +8,8 @@ import {
   createTodoItemSchema,
   updateTodoItemSchema,
   toggleTodoItemSchema,
-  deleteTodoItemSchema
+  deleteTodoItemSchema,
+  updateTodoListSchema
 } from './schemas.js';
 
 export const createTodoItem = form(async (formData) => {
@@ -183,6 +184,43 @@ export const deleteTodoItem = form(async (formData) => {
 
   return handler.redirect({
     message: 'Item deleted!',
+    location: `/demos/remote-functions/lists/${listId}`
+  });
+});
+
+export const updateTodoList = form(async (formData) => {
+  const event = getRequestEvent();
+  const user = await guardRegisteredUser(event);
+
+  const handler = new RemoteFunctionHandler(
+    updateTodoListSchema,
+    formData,
+    event
+  );
+
+  if (!handler.valid) {
+    return handler.fail();
+  }
+
+  const db = getDb();
+  const listId = BigInt(handler.data.listId);
+
+  // Verify the list belongs to the user and update it
+  const [updatedList] = await db
+    .update(todoList)
+    .set({
+      name: handler.data.name,
+      description: handler.data.description || null
+    })
+    .where(and(eq(todoList.id, listId), eq(todoList.userId, user.user.id)))
+    .returning();
+
+  if (!updatedList) {
+    return handler.fail({ listId: 'List not found or access denied' });
+  }
+
+  return handler.redirect({
+    message: 'List updated!',
     location: `/demos/remote-functions/lists/${listId}`
   });
 });
