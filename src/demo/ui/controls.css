@@ -112,7 +112,7 @@
     @apply border-transparent bg-gray-800 text-white hover:bg-gray-900 [&.active]:bg-black;
   }
   .button.button-ghost {
-    @apply border-transparent bg-transparent text-gray-700 hover:bg-gray-100 [&.active]:bg-gray-200 dark:text-gray-300 dark:hover:bg-gray-900 dark:active:bg-gray-800;
+    @apply border-transparent bg-transparent text-gray-700 hover:bg-gray-100 dark:text-gray-300 dark:hover:bg-gray-900 dark:active:bg-gray-800 [&.active]:bg-gray-200;
   }
 
   ul.control-group {
