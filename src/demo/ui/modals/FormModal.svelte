@@ -28,6 +28,7 @@
   popover
   bind:this={dialog}
   closedby="any"
+  data-position={position}
   class={cn(
     [
       position === 'center' &&
@@ -72,9 +73,43 @@
     opacity: 0;
   }
 
+  dialog[popover][data-position='center'] {
+    transform: translateY(2rem);
+    transition:
+      transform var(--duration) ease-out,
+      opacity var(--duration) ease-out,
+      display var(--duration) allow-discrete,
+      overlay var(--duration) allow-discrete;
+  }
+
+  dialog[popover][data-position='right'] {
+    transform: translateX(100%);
+    transition:
+      transform var(--duration) ease-out,
+      opacity var(--duration) ease-out,
+      display var(--duration) allow-discrete,
+      overlay var(--duration) allow-discrete;
+  }
+
   dialog[popover]:popover-open {
     opacity: 1;
     @starting-style {
+      opacity: 0;
+    }
+  }
+
+  dialog[popover][data-position='center']:popover-open {
+    transform: translateY(0);
+    @starting-style {
+      transform: translateY(2rem);
+      opacity: 0;
+    }
+  }
+
+  dialog[popover][data-position='right']:popover-open {
+    transform: translateX(0);
+    @starting-style {
+      transform: translateX(100%);
       opacity: 0;
     }
   }

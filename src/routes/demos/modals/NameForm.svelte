@@ -25,9 +25,7 @@
   let position: 'center' | 'right' = $state('center');
 </script>
 
-
-
-<FormModal id={modalId} title="Edit Name" position="right">
+<FormModal id={modalId} title="Edit Name" position="center">
   {#snippet body(close)}
     <form
       method="POST"
@@ -48,6 +46,7 @@
             bind:value={form.data.name}
             class="control"
             class:invalid={form.shownErrors.name}
+            onblur={() => form.touch('name')}
             aria-describedby={form.controlId('name') + '-description'}
           />
           <div class="text-sm" id={form.controlId('name') + '-description'}>

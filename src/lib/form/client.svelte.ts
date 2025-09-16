@@ -78,6 +78,9 @@ export class ClientFormState<S extends ZFormObject> {
   set submitting(value: boolean) {
     this._submitting = value;
   }
+  get touchedKeys(): ZDotPaths<S>[] {
+    return this._touchedKeys;
+  }
 
   controlName(path: ZFormPaths<S>): string {
     const { formName } = formPath(this.schema, path);
@@ -91,6 +94,10 @@ export class ClientFormState<S extends ZFormObject> {
     const { formName } = formPath(this.schema, path);
     this._touchedKeys.push(formName as ZDotPaths<S>);
     delete this._externalErrors[formName as keyof FormErrors<S>];
+  }
+  touchAll(): void {
+    // Mark all fields as touched by getting all possible field paths from calculated errors
+    this._touchedKeys = Object.keys(this._calculatedErrors) as ZDotPaths<S>[];
   }
   untouchAll(): void {
     this._touchedKeys = [];
@@ -112,6 +119,7 @@ export const enhanceRemoteFunctionForm = <Schema extends ZFormObject>(
   const result = $derived(formFunction.result);
   return formFunction.enhance(async ({ submit, data: formData, form }) => {
     if (!formState.valid) {
+      formState.touchAll();
       msg.error(getErrorToastMessage(formState.errors, options.errorMessage));
       return;
     }
@@ -157,6 +165,7 @@ export const enhanceActionForm = <Schema extends ZFormObject>(
     ServerFormState<Schema>
   > = async (input) => {
     if (!formState.valid) {
+      formState.touchAll();
       msg.error(getErrorToastMessage(formState.errors, options.errorMessage));
       input.cancel();
       scrollToFirstError(input.formElement);
