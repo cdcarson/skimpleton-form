@@ -22,9 +22,12 @@
     { name: data.value },
     actionData
   );
+  let position: 'center' | 'right' = $state('center');
 </script>
 
-<FormModal id={modalId} title="Edit Name">
+
+
+<FormModal id={modalId} title="Edit Name" position="right">
   {#snippet body(close)}
     <form
       method="POST"
