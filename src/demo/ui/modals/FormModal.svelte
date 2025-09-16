@@ -7,6 +7,7 @@
     title: string;
     body: Snippet<[close: () => void]>;
     position?: 'center' | 'right';
+    width?: 'xs' | 'sm' | 'md' | 'lg' | 'xl' | '2xl';
     class?: string;
   };
 
@@ -15,6 +16,7 @@
     title,
     body,
     position = 'center',
+    width = 'md',
     class: className
   }: Props = $props();
   let dialog: HTMLDialogElement | undefined = $state();
@@ -31,13 +33,72 @@
   data-position={position}
   class={cn(
     [
-      position === 'center' &&
-        'top-1/2 left-1/2 w-96 max-w-96 -translate-x-1/2 -translate-y-1/2 rounded border',
-      position === 'right' &&
-        'top-0 right-0 bottom-0 left-auto h-full w-96 max-w-96 border-l'
+      // Position classes (independent of width)
+      position === 'center' && [
+        // Base center positioning
+        'top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2',
+
+        // Override positioning when fullscreen (based on width variant)
+        width === 'sm' && [
+          'top-0 left-0 translate-x-0 translate-y-0',
+          'sm:top-1/2 sm:left-1/2 sm:-translate-x-1/2 sm:-translate-y-1/2'
+        ],
+        width === 'md' && [
+          'top-0 left-0 translate-x-0 translate-y-0',
+          'md:top-1/2 md:left-1/2 md:-translate-x-1/2 md:-translate-y-1/2'
+        ],
+        width === 'lg' && [
+          'top-0 left-0 translate-x-0 translate-y-0',
+          'lg:top-1/2 lg:left-1/2 lg:-translate-x-1/2 lg:-translate-y-1/2'
+        ],
+        width === 'xl' && [
+          'top-0 left-0 translate-x-0 translate-y-0',
+          'xl:top-1/2 xl:left-1/2 xl:-translate-x-1/2 xl:-translate-y-1/2'
+        ],
+        width === '2xl' && [
+          'top-0 left-0 translate-x-0 translate-y-0',
+          '2xl:top-1/2 2xl:left-1/2 2xl:-translate-x-1/2 2xl:-translate-y-1/2'
+        ]
+      ],
+
+      position === 'right' && 'top-0 right-0 bottom-0 left-auto',
+
+      // Width classes (independent of position)
+      width === 'xs' && 'w-80 max-w-[calc(100vw-2rem)]',
+      width === 'sm' && 'h-full w-full sm:h-auto sm:w-96',
+      width === 'md' && 'h-full w-full md:h-auto md:w-[28rem]',
+      width === 'lg' && 'h-full w-full lg:h-auto lg:w-[32rem]',
+      width === 'xl' && 'h-full w-full xl:h-auto xl:w-[36rem]',
+      width === '2xl' && 'h-full w-full 2xl:h-auto 2xl:w-[42rem]',
+
+      // Height for right position (always full height)
+      position === 'right' && 'h-full',
+
+      // Border and rounding classes (dependent on both width and position)
+      position === 'center' && [
+        width === 'xs' && 'rounded border',
+        width === 'sm' && 'rounded-none border-0 sm:rounded sm:border',
+        width === 'md' && 'rounded-none border-0 md:rounded md:border',
+        width === 'lg' && 'rounded-none border-0 lg:rounded lg:border',
+        width === 'xl' && 'rounded-none border-0 xl:rounded xl:border',
+        width === '2xl' && 'rounded-none border-0 2xl:rounded 2xl:border'
+      ],
+
+      position === 'right' && [
+        width === 'xs' && 'border-l',
+        width === 'sm' && 'border-0 sm:border-l',
+        width === 'md' && 'border-0 md:border-l',
+        width === 'lg' && 'border-0 lg:border-l',
+        width === 'xl' && 'border-0 xl:border-l',
+        width === '2xl' && 'border-0 2xl:border-l'
+      ]
     ],
+
+    // Base colors that always apply
     'border-gray-300 bg-white dark:border-gray-700 dark:bg-black',
     'backdrop:bg-black/50',
+
+    // User-provided classes
     className
   )}
 >
