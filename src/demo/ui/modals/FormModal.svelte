@@ -63,16 +63,34 @@
 
       position === 'right' && 'top-0 right-0 bottom-0 left-auto',
 
-      // Width classes (independent of position)
+      // Width classes
       width === 'xs' && 'w-80 max-w-[calc(100vw-2rem)]',
-      width === 'sm' && 'h-full w-full sm:h-auto sm:w-96',
-      width === 'md' && 'h-full w-full md:h-auto md:w-[28rem]',
-      width === 'lg' && 'h-full w-full lg:h-auto lg:w-[32rem]',
-      width === 'xl' && 'h-full w-full xl:h-auto xl:w-[36rem]',
-      width === '2xl' && 'h-full w-full 2xl:h-auto 2xl:w-[42rem]',
+      width === 'sm' && 'w-full sm:w-96',
+      width === 'md' && 'w-full md:w-[28rem]',
+      width === 'lg' && 'w-full lg:w-[32rem]',
+      width === 'xl' && 'w-full xl:w-[36rem]',
+      width === '2xl' && 'w-full 2xl:w-[42rem]',
 
-      // Height for right position (always full height)
+      // Height classes
+      position === 'center' && [
+        // xs never needs h-full since it's never fullscreen
+        width === 'sm' && 'h-full sm:h-fit',
+        width === 'md' && 'h-full md:h-fit',
+        width === 'lg' && 'h-full lg:h-fit',
+        width === 'xl' && 'h-full xl:h-fit',
+        width === '2xl' && 'h-full 2xl:h-fit'
+      ],
       position === 'right' && 'h-full',
+
+      // Max-height for center position (when not fullscreen)
+      position === 'center' && [
+        width === 'xs' && 'max-h-[calc(100vh-2rem)]',
+        width === 'sm' && 'sm:max-h-[calc(100vh-2rem)]',
+        width === 'md' && 'md:max-h-[calc(100vh-2rem)]',
+        width === 'lg' && 'lg:max-h-[calc(100vh-2rem)]',
+        width === 'xl' && 'xl:max-h-[calc(100vh-2rem)]',
+        width === '2xl' && '2xl:max-h-[calc(100vh-2rem)]'
+      ],
 
       // Border and rounding classes (dependent on both width and position)
       position === 'center' && [
@@ -119,7 +137,7 @@
       <span class="icon-[bi--x-lg]"></span>
     </button>
   </header>
-  <div class="grow overflow-y-scroll p-4">
+  <div class="p-4">
     {@render body(close)}
   </div>
 </dialog>
@@ -135,7 +153,7 @@
   }
 
   dialog[popover][data-position='center'] {
-    transform: translateY(2rem);
+    transform: translateY(50vh);
     transition:
       transform var(--duration) ease-out,
       opacity var(--duration) ease-out,
@@ -162,7 +180,7 @@
   dialog[popover][data-position='center']:popover-open {
     transform: translateY(0);
     @starting-style {
-      transform: translateY(2rem);
+      transform: translateY(50vh);
       opacity: 0;
     }
   }
